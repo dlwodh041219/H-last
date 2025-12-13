@@ -32,16 +32,12 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  createCanvas(1440, 1080);
   noCursor();
 
   setupAvatar();
 
   lastActivityTime = millis();
-}
-
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
 }
 
 function draw() {
