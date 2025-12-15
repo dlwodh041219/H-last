@@ -89,7 +89,7 @@ function draw() {
   push();
   textAlign(CENTER, CENTER);
   textFont("sans-serif");
-  textSize(45);
+  textSize(80);
   noStroke();
   fill(0);
   text("👆", mouseX, mouseY+25);
@@ -116,14 +116,14 @@ function drawStartPage() {
   textFont(fontTemplate);
   fill(0);
   noStroke();
-  textSize(15);
-  text("Emoji-Choreo", 485, 185);
+  textSize(40);
+  text("Emoji-Choreo", 1090, 480);
   pop();
 
   // 체크표시 이미지
   push();
   rotate(radians(-10));
-  image(img, 40, 80, 160, 110);
+  image(img, 180, 300, 260, 130);
   pop();
 
   //"이모지 코레오"
@@ -133,22 +133,22 @@ function drawStartPage() {
   fill(247, 207, 99);
   stroke(0);
   strokeWeight(3);
-  textSize(60);
-  text("이모지 코레오", width / 2, 150);
+  textSize(120);
+  text("이모지 코레오", width / 2, 400);
 
   //"나만의"
-  textSize(35);
+  textSize(70);
   fill(62, 133, 201);
   push();
-  rotate(radians(-25));
-  text("나만의", 50, 125);
+  rotate(radians(-15));
+  text("나만의", 250, 320);
   pop();
 
   // START 버튼 범위
-  let btnLeft = 145;
-  let btnRight = 495;
-  let btnTop = 290;
-  let btnBottom = 410;
+  let btnLeft = 470;
+  let btnRight = 970;
+  let btnTop = 616;
+  let btnBottom = 796;
   let hoverStart =
     mouseX < btnRight && mouseX > btnLeft &&
     mouseY < btnBottom && mouseY > btnTop;
@@ -157,17 +157,17 @@ function drawStartPage() {
   fill(0, 100);
   noStroke();
   if (hoverStart) {
-    ellipse(width / 2 + 5, 350 + 7, 370, 140);
+    ellipse(width / 2 + 5, 706 + 15, 630, 200);
   } else {
-    ellipse(width / 2 + 5, 350 + 7, 350, 120);
+    ellipse(width / 2 + 5, 706 + 15, 600, 180);
   }
 
   // 본 도형
   fill(190);
   if (hoverStart) {
-    ellipse(width / 2, 350, 370, 140);
+    ellipse(width / 2, 706, 630, 200);
   } else {
-    ellipse(width / 2, 350, 350, 120);
+    ellipse(width / 2, 706, 600, 180);
   }
 
   //"START!"
@@ -177,62 +177,69 @@ function drawStartPage() {
   strokeWeight(1);
   fill(230, 164, 174);
   if (hoverStart) {
-    textSize(80);
-    text("START!", width / 2, 373);
+    textSize(120);
+    text("START!", width / 2, 738);
   } else {
-    textSize(60);
-    text("START!", width / 2, 365);
+    textSize(100);
+    text("START!", width / 2, 730);
   }
   pop();
 
   // 이모티콘 장식들 (크게 유지)
   push();
-  translate(500, 268);
+  translate(1125, 603);
   rotate(radians(20));
   noStroke();
   textFont("sans-serif");
-  textSize(40);
+  textSize(100);
   text("🐶", 0, 0);
   pop();
 
   push();
-  translate(120, 300);
+  translate(270, 675);
   rotate(radians(-30));
   textFont("sans-serif");
-  textSize(40);
+  textSize(100);
   text("😚", 0, 0);
   pop();
 
   push();
-  translate(90, 415);
+  translate(250, 933.75);
   rotate(radians(10));
   textFont("sans-serif");
-  textSize(40);
+  textSize(100);
   text("🔨", 0, 0);
   pop();
 
   push();
-  translate(540, 435);
+  translate(1215, 978.75);
   rotate(radians(10));
-  textSize(40);
+  textSize(100);
   textFont("sans-serif");
   text("🏠", 0, 0);
   pop();
 
   push();
-  translate(230, 245);
+  translate(517.5, 551.25);
   rotate(radians(-10));
-  textSize(40);
+  textSize(100);
   textFont("sans-serif");
   text("👕", 0, 0);
   pop();
 
   push();
-  translate(570, 345);
+  translate(1282.5, 776.25);
   rotate(radians(10));
-  textSize(40);
+  textSize(100);
   textFont("sans-serif");
   text("🥞", 0, 0);
+  pop();
+
+  push();
+  translate(width/2, 1000);
+  textSize(100);
+  textFont("sans-serif");
+  text("😎", 0, 0);
   pop();
 }
 
@@ -440,7 +447,11 @@ function mousePressed() {
 
   // 1단계: START 화면 → 템플릿 화면으로 이동
   if (phase === 1) {
-    if (mouseX < 495 && mouseX > 145 && mouseY < 410 && mouseY > 290) {
+  let btnLeft = 470;
+  let btnRight = 970;
+  let btnTop = 616;
+  let btnBottom = 796;
+    if (mouseX < btnRight && mouseX > btnLeft && mouseY < btnBottom && mouseY > btnTop) {
       phase = 2;
     }
   }
