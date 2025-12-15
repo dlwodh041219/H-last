@@ -60,10 +60,10 @@ let guideImagesReady = { 1:false, 2:false, 3:false, 4:false };
 // ================== 동물 가이드 이미지 로더 ==================
 function loadAnimalGuideImgs() {
   animalGuideImgs = {
-    1: ['Hug.png'],
+    1: ['Hug(f).png'],
     2: ['1 clear.png', 'Feed1.png', 'Feed2.png'],
     3: ['2 clear.png', 'tap1.png','tap2.png'],
-    4: ['3 clear.png', 'Play1.png','Play2.png']
+    4: ['3 clear.png', 'Play1(f).png','Play2(f).png']
   };
 
   // 단계별 로드 상태 초기화
