@@ -7,6 +7,7 @@ let cookImgs = [];
 
 // 기준선
 let cookHeadY = null;
+let cookChestX = null;
 let cookChestY = null;
 
 // 매끄럽게 (스무딩)
@@ -121,6 +122,7 @@ function cookResetState() {
   cookCurrentPose = null;
 
   cookHeadY = null;
+  cookChestX = null;
   cookChestY = null;
   cookSmoothPoints = {};
 
@@ -220,7 +222,10 @@ function cookUpdateBodyHeights() {
   let rs = cookGetPart("right_shoulder");
 
   if (nose) cookHeadY = nose.y;
-  if (ls && rs) cookChestY = (ls.y + rs.y) / 2;
+  if (ls && rs) {
+    cookChestY = (ls.y + rs.y) / 2;
+    cookChestX = rs.x / 2;
+  }
 }
 
 function drawCookingGame() {
@@ -240,6 +245,10 @@ function drawCookingGame() {
   }
   // 안내 텍스트
   cookDrawStageInfo();
+
+  if (cookStage === 0 || cookStage === 1) {
+  cookDrawChestGuideLine();
+}
 
   // 4단계: Face tracking (입 벌리기)만 별도로 처리
   if (cookStage === 3) {
@@ -538,16 +547,8 @@ function cookDrawKeypoints() {
     let x = smoothed ? smoothed.x : raw.x;
     let y = smoothed ? smoothed.y : raw.y;
 
-    // confidence 시각화 (녹-노-빨)
-    let c =
-      raw && (raw.confidence !== undefined ? raw.confidence : raw.score);
-    if (c == null) c = 0;
-
-    let r = map(c, 0, 1, 255, 0);
-    let g = map(c, 0, 1, 0, 255);
-
-    fill(r, g, 0);
-    ellipse(x, y, 10, 10);
+    fill(0, 0, 255);
+    ellipse(x, y, 12, 12);
   }
 }
 
@@ -730,6 +731,17 @@ function resetCookingStageTaste() {
   cookDetectedText = "";
 }
 
+function cookDrawChestGuideLine() {
+  if (cookChestY == null) return;
+
+  push();
+  resetMatrix();
+  stroke(255, 0, 0);
+  strokeWeight(1);
+  line(0, cookChestY, width, cookChestY);
+  pop();
+}
+
 
 function cookPointInRect(px, py, r) {
   return px > r.x && px < r.x + r.w && py > r.y && py < r.y + r.h;
@@ -777,9 +789,9 @@ function cookDrawFlashEffect() {
 }
 
 function cookDrawPhotoButton() {
-  let r = 34;
+  let r = 50;
   let cx = width / 2;
-  let cy = height - 60;
+  let cy = height - 100;
 
   cookPhotoBtn.x = cx - r;
   cookPhotoBtn.y = cy - r;
@@ -833,8 +845,44 @@ function cookDrawCountdownOverlay() {
 }
 
 function cookDrawPhotoPreview() {
-  background(0);
+  background(200, 195, 185);
 
+  // ✅ 640x480 기준으로 스케일 (너무 커지지 않게)
+  let ui = min(width / 640, height / 480);
+  ui = constrain(ui, 1.0, 1.6);
+
+  // ====== 상단 캡션 ======
+  let topH = 56 * ui;
+  push();
+  resetMatrix();
+  noStroke();
+  fill(255, 80);
+  rect(0, 0, width, topH);
+
+  fill(20);
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  textSize(20 * ui);
+  text("사진을 확인하고 저장하거나 다시 찍을 수 있어요", width / 2, topH / 2);
+  pop();
+
+  // ====== 하단 패널(바) ======
+  let panelH = 110 * ui;
+  let panelY = height - panelH;
+
+  push();
+  resetMatrix();
+  noStroke();
+  fill(255, 95);
+  rect(0, panelY, width, panelH);
+
+  // 패널 위쪽 얇은 하이라이트 라인
+  stroke(255, 40);
+  strokeWeight(2);
+  line(0, panelY, width, panelY);
+  pop();
+
+  // ====== 이미지 프리뷰 영역 ======
   if (cookCapturedImg) {
     push();
     resetMatrix();
@@ -842,67 +890,97 @@ function cookDrawPhotoPreview() {
 
     let iw = cookCapturedImg.width;
     let ih = cookCapturedImg.height;
-    let scale = min(width / iw, height / ih);
+
+    // 상단/하단 UI 영역 제외한 공간에 맞춤
+    let availW = width * 0.92;
+    let availH = height - topH - panelH - 18 * ui;
+    let scale = min(availW / iw, availH / ih);
+
     let w = iw * scale;
     let h = ih * scale;
+    let cx = width / 2;
+    let cy = topH + (availH / 2) + 6 * ui;
 
-    image(cookCapturedImg, width/2, height/2, w, h);
+    // 그림자 느낌(바깥)
+    noStroke();
+    fill(0, 120);
+    rectMode(CENTER);
+    rect(cx, cy + 10 * ui, w + 10 * ui, h + 7 * ui, 18 * ui);
 
+    // 이미지
+    image(cookCapturedImg, cx, cy, w, h);
+
+    // 프레임
     noFill();
     stroke(255);
-    strokeWeight(6);
-    rectMode(CENTER);
-    rect(width/2, height/2, w, h, 10);
+    strokeWeight(3 * ui);
+    rect(cx, cy, w, h, 14 * ui);
+
     pop();
   }
 
-  let btnW = 160, btnH = 52;
-  let gap = 18;
-  let cy = height - 55;
+  // ====== 버튼 크기(너무 안 커지게) ======
+  let btnW = min(240 * ui, width * 0.28);
+  let btnH = 54 * ui;
+  let gap = 16 * ui;
 
-  let leftCx  = width/2 - (btnW/2 + gap/2);
-  let rightCx = width/2 + (btnW/2 + gap/2);
+  let cyBtn = panelY + panelH / 2;
 
-  cookRetakeBtn.x = leftCx - btnW/2;
-  cookRetakeBtn.y = cy - btnH/2;
+  let leftCx = width / 2 - (btnW / 2 + gap);
+  let rightCx = width / 2 + (btnW / 2 + gap);
+
+  cookRetakeBtn.x = leftCx - btnW / 2;
+  cookRetakeBtn.y = cyBtn - btnH / 2;
   cookRetakeBtn.w = btnW;
   cookRetakeBtn.h = btnH;
 
-  cookSaveQRBtn.x = rightCx - btnW/2;
-  cookSaveQRBtn.y = cy - btnH/2;
+  cookSaveQRBtn.x = rightCx - btnW / 2;
+  cookSaveQRBtn.y = cyBtn - btnH / 2;
   cookSaveQRBtn.w = btnW;
   cookSaveQRBtn.h = btnH;
 
   let hoverRetake = cookPointInRect(mouseX, mouseY, cookRetakeBtn);
   let hoverSave   = cookPointInRect(mouseX, mouseY, cookSaveQRBtn);
 
+  // ====== 버튼 스타일(캡슐 + 보더 + 살짝 그림자) ======
   push();
   resetMatrix();
   rectMode(CORNER);
-  noStroke();
-
-  fill(hoverRetake ? 245 : 230);
-  rect(cookRetakeBtn.x, cookRetakeBtn.y, btnW, btnH, 16);
-  fill(0);
   textAlign(CENTER, CENTER);
-  textSize(16);
-  text("다시 찍기", leftCx, cy);
-
-  let saving = cookGoToQRTriggered;
-  fill(hoverSave ? color(230,164,174) : color(200,150,160));
-  if (saving) fill(160);
-  rect(cookSaveQRBtn.x, cookSaveQRBtn.y, btnW, btnH, 16);
-
-  fill(0);
-  text(saving ? "저장 중..." : "QR 저장", rightCx, cy);
-
-  fill(255);
   textStyle(BOLD);
-  textSize(20);
-  text("사진을 확인하고 저장하거나 다시 찍을 수 있어요", width/2, 26);
+  textSize(18 * ui);
+
+  // 공통 그림자
+  noStroke();
+  fill(0, 90);
+  rect(cookRetakeBtn.x, cookRetakeBtn.y + 4 * ui, btnW, btnH, 999);
+  rect(cookSaveQRBtn.x, cookSaveQRBtn.y + 4 * ui, btnW, btnH, 999);
+
+  // 다시 찍기 (화이트 캡슐)
+  stroke(255, 130);
+  strokeWeight(2);
+  fill(hoverRetake ? 255 : 245);
+  rect(cookRetakeBtn.x, cookRetakeBtn.y, btnW, btnH, 999);
+
+  noStroke();
+  fill(20);
+  text("다시 찍기", leftCx, cyBtn);
+
+  // QR 저장 (핑크 계열 캡슐) + 저장중 비활성
+  let saving = cookGoToQRTriggered;
+  stroke(255, 90);
+  strokeWeight(2);
+  if (saving) fill(160);
+  else fill(hoverSave ? color(235, 175, 185) : color(215, 155, 165));
+  rect(cookSaveQRBtn.x, cookSaveQRBtn.y, btnW, btnH, 999);
+
+  noStroke();
+  fill(20);
+  text(saving ? "저장 중..." : "QR 저장", rightCx, cyBtn);
 
   pop();
 }
+
 
 function cookCanShowSkip() {
   // 완료 화면에서는 skip 없음
@@ -965,15 +1043,15 @@ function cookDrawStageInfo() {
 
   // ✅ 완료 상태: cookStage === 4 && cookStageDone
   if (cookStage === 4 && cookStageDone) {
-    desc = "요리하기 완료! 셔터를 눌러 행복한 순간을 사진으로 기록해 보세요!";
+    desc = "요리하기 완료! 셔터를 눌러 뿌듯한 순간을 사진으로 기록해 보세요!";
   } else {
     // ✅ 진행 중 단계 텍스트
     if (cookStage === 0) {
-      desc = `1단계) 재료 칼질: 오른손을 위아래로 크게 3회 움직여요! (${cookChopCycles}/3)`;
+      desc = `1단계) 재료 칼질: 오른손을 기준선을 중심으로 위아래로 3회 움직여요! (${cookChopCycles}/3)`;
     } else if (cookStage === 1) {
-      desc = `2단계) 재료 넣기: 양손을 머리 위아래로 크게 3회 움직여요! (${cookBothCycles}/3)`;
+      desc = `2단계) 재료 넣기: 양손을 기준선을 중심으로 위아래로 3회 움직여요! (${cookBothCycles}/3)`;
     } else if (cookStage === 2) {
-      desc = `3단계) 재료 볶기: 오른손을 좌우로 3회 크게 움직여요! (${cookFryCycles}/3)`;
+      desc = `3단계) 재료 볶기: 오른손을 좌우로 크게 3회 움직여요! (${cookFryCycles}/3)`;
     } else if (cookStage === 3) {
       desc = `4단계) 간보기: 입을 3회 크게 벌렸다 오므리세요! (${cookTasteCycles}/${COOK_TASTE_TARGET})`;
     }

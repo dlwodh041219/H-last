@@ -528,8 +528,8 @@ function animalUpdateFeedStepByBodyPose() {
   // 디버그로 오른손 위치 표시(원하면 유지)
   push();
   noStroke();
-  fill(255, 0, 0);
-  ellipse(hand.x, hand.y, 10, 10);
+  fill(0, 0, 255);
+  ellipse(hand.x, hand.y, 15, 15);
   pop();
 
   // 어떤 타겟을 보고 있는지 결정
@@ -710,9 +710,9 @@ function animalDrawFlashEffect() {
 
 function animalDrawPhotoButton() {
   // 중앙 하단 원형 셔터 버튼
-  let r = 34;
+  let r = 50;
   let cx = width / 2;
-  let cy = height - 60;
+  let cy = height - 100;
 
   // 클릭 영역 저장 (원형이지만 rect 형태로도 저장해둠)
   animalPhotoBtn.x = cx - r;
@@ -771,79 +771,139 @@ function animalDrawCountdownOverlay() {
 }
 
 
-
 function animalDrawPhotoPreview() {
-  background(0);
+  background(200, 195, 185);
 
-  // 캡쳐 이미지 크게 보여주기
+  // ✅ 640x480 기준으로 스케일 (너무 커지지 않게)
+  let ui = min(width / 640, height / 480);
+  ui = constrain(ui, 1.0, 1.6);
+
+  // ====== 상단 캡션 ======
+  let topH = 56 * ui;
+  push();
+  resetMatrix();
+  noStroke();
+  fill(255, 80);
+  rect(0, 0, width, topH);
+
+  fill(20);
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  textSize(20 * ui);
+  text("사진을 확인하고 저장하거나 다시 찍을 수 있어요", width / 2, topH / 2);
+  pop();
+
+  // ====== 하단 패널(바) ======
+  let panelH = 110 * ui;
+  let panelY = height - panelH;
+
+  push();
+  resetMatrix();
+  noStroke();
+  fill(255, 95);
+  rect(0, panelY, width, panelH);
+
+  // 패널 위쪽 얇은 하이라이트 라인
+  stroke(255, 40);
+  strokeWeight(2);
+  line(0, panelY, width, panelY);
+  pop();
+
+  // ====== 이미지 프리뷰 영역 ======
   if (animalCapturedImg) {
     push();
     resetMatrix();
     imageMode(CENTER);
 
-    // 화면에 꽉 차게(비율 유지)
     let iw = animalCapturedImg.width;
     let ih = animalCapturedImg.height;
-    let scale = min(width / iw, height / ih);
+
+    // 상단/하단 UI 영역 제외한 공간에 맞춤
+    let availW = width * 0.92;
+    let availH = height - topH - panelH - 18 * ui;
+    let scale = min(availW / iw, availH / ih);
+
     let w = iw * scale;
     let h = ih * scale;
+    let cx = width / 2;
+    let cy = topH + (availH / 2) + 6 * ui;
 
-    image(animalCapturedImg, width/2, height/2, w, h);
+    // 그림자 느낌(바깥)
+    noStroke();
+    fill(0, 120);
+    rectMode(CENTER);
+    rect(cx, cy + 10 * ui, w + 10 * ui, h + 7 * ui, 18 * ui);
 
-    // 살짝 프레임 느낌
+    // 이미지
+    image(animalCapturedImg, cx, cy, w, h);
+
+    // 프레임
     noFill();
     stroke(255);
-    strokeWeight(6);
-    rectMode(CENTER);
-    rect(width/2, height/2, w, h, 10);
+    strokeWeight(3 * ui);
+    rect(cx, cy, w, h, 14 * ui);
+
     pop();
   }
 
-  // 하단 버튼 2개: 다시 찍기 / QR 저장
-  let btnW = 160, btnH = 52;
-  let gap = 18;
-  let cy = height - 55;
+  // ====== 버튼 크기(너무 안 커지게) ======
+  let btnW = min(240 * ui, width * 0.28);
+  let btnH = 54 * ui;
+  let gap = 16 * ui;
 
-  let leftCx = width/2 - (btnW/2 + gap/2);
-  let rightCx = width/2 + (btnW/2 + gap/2);
+  let cyBtn = panelY + panelH / 2;
 
-  animalRetakeBtn.x = leftCx - btnW/2;
-  animalRetakeBtn.y = cy - btnH/2;
+  let leftCx = width / 2 - (btnW / 2 + gap);
+  let rightCx = width / 2 + (btnW / 2 + gap);
+
+  animalRetakeBtn.x = leftCx - btnW / 2;
+  animalRetakeBtn.y = cyBtn - btnH / 2;
   animalRetakeBtn.w = btnW;
   animalRetakeBtn.h = btnH;
 
-  animalSaveQRBtn.x = rightCx - btnW/2;
-  animalSaveQRBtn.y = cy - btnH/2;
+  animalSaveQRBtn.x = rightCx - btnW / 2;
+  animalSaveQRBtn.y = cyBtn - btnH / 2;
   animalSaveQRBtn.w = btnW;
   animalSaveQRBtn.h = btnH;
 
   let hoverRetake = animalPointInRect(mouseX, mouseY, animalRetakeBtn);
   let hoverSave   = animalPointInRect(mouseX, mouseY, animalSaveQRBtn);
 
+  // ====== 버튼 스타일(캡슐 + 보더 + 살짝 그림자) ======
   push();
   resetMatrix();
   rectMode(CORNER);
-  noStroke();
-
-  fill(hoverRetake ? 245 : 230);
-  rect(animalRetakeBtn.x, animalRetakeBtn.y, btnW, btnH, 16);
-  fill(0);
   textAlign(CENTER, CENTER);
-  textSize(16);
-  text("다시 찍기", leftCx, cy);
-
-  let saving = animalGoToQRTriggered;
-  fill(hoverSave ? color(230,164,174) : color(200,150,160));
-  if (saving) fill(160); // ✅ 저장 중이면 비활성 느낌
-  rect(animalSaveQRBtn.x, animalSaveQRBtn.y, btnW, btnH, 16);
-  fill(0);
-  text(saving ? "저장 중..." : "QR 저장", rightCx, cy);
-
-  // 안내 텍스트(선택)
-  fill(255);
   textStyle(BOLD);
-  textSize(20);
-  text("사진을 확인하고 저장하거나 다시 찍을 수 있어요", width/2, 24 + 2);
+  textSize(18 * ui);
+
+  // 공통 그림자
+  noStroke();
+  fill(0, 90);
+  rect(animalRetakeBtn.x, animalRetakeBtn.y + 4 * ui, btnW, btnH, 999);
+  rect(animalSaveQRBtn.x, animalSaveQRBtn.y + 4 * ui, btnW, btnH, 999);
+
+  // 다시 찍기 (화이트 캡슐)
+  stroke(255, 130);
+  strokeWeight(2);
+  fill(hoverRetake ? 255 : 245);
+  rect(animalRetakeBtn.x, animalRetakeBtn.y, btnW, btnH, 999);
+
+  noStroke();
+  fill(20);
+  text("다시 찍기", leftCx, cyBtn);
+
+  // QR 저장 (핑크 계열 캡슐) + 저장중 비활성
+  let saving = animalGoToQRTriggered;
+  stroke(255, 90);
+  strokeWeight(2);
+  if (saving) fill(160);
+  else fill(hoverSave ? color(235, 175, 185) : color(215, 155, 165));
+  rect(animalSaveQRBtn.x, animalSaveQRBtn.y, btnW, btnH, 999);
+
+  noStroke();
+  fill(20);
+  text(saving ? "저장 중..." : "QR 저장", rightCx, cyBtn);
 
   pop();
 }
@@ -856,7 +916,7 @@ function animalDrawKeypoints() {
     if (kp.confidence > 0.3) {
       fill(0, 0, 255);
       noStroke();
-      ellipse(kp.x, kp.y, 8, 8);
+      ellipse(kp.x, kp.y, 12, 12);
     }
   }
 
@@ -1120,13 +1180,13 @@ function animalDrawUI() {
   } else {
     let desc = "";
     if (animalCurrentStep === 1)
-      desc = "1단계) 안아주기: 양팔을 크게 3초 간 벌리세요!";
+      desc = "1단계) 안아주기: 양팔을 기준선 아래로 크게 3초 간 벌리세요!";
     else if (animalCurrentStep === 2)
       desc = "2단계) 밥 주기: 오른손으로 당근과 그릇을 차례로 2초 간 터치하세요!";
     else if (animalCurrentStep === 3)
-      desc = `3단계) 쓰다듬기: 오른손을 머리 위아래로 3회 움직이세요! (${animalWaveCount}/${ANIMAL_REQUIRED_WAVES})`;
+      desc = `3단계) 쓰다듬기: 오른손을 기준선을 중심으로 쓰다듬듯이 위아래로 3회 움직이세요! (${animalWaveCount}/${ANIMAL_REQUIRED_WAVES})`;
     else if (animalCurrentStep === 4)
-      desc = `4단계) 놀아주기: 양팔을 위아래로 3회 움직이세요! (${animalSwingCount}/3)`;
+      desc = `4단계) 놀아주기: 양팔을 기준선을 중심으로 위아래로 3회 움직이세요! (${animalSwingCount}/3)`;
 
     text(desc, width / 2, barCenterY);
   }

@@ -7,7 +7,7 @@ let houseStep = 1;
 let houseStepDone = false;
 
 // 기준선
-let houseHeadY, houseChestY;
+let houseHeadY, houseChestX, houseChestY;
 
 // 스무딩
 let houseSmoothPoints = {};
@@ -108,6 +108,7 @@ function initHouseGame() {
   houseSmoothPoints = {};
   houseHeadY = null;
   houseChestY = null;
+  houseChestX = null;
 
   houseDoneTime = null;
   houseGoToQRTriggered = false;
@@ -183,7 +184,10 @@ function updateHouseBodyHeights() {
   let rs = houseGetPart("right_shoulder");
 
   if (nose) houseHeadY = nose.y;
-  if (ls && rs) houseChestY = (ls.y + rs.y) / 2;
+  if (ls && rs) {
+    houseChestY = (ls.y + rs.y) / 2;
+    houseChestX = rs.x;
+  }
 }
 
 // -------------------- 메인 draw (phase===3 && selectedGame==="house"일 때 호출) --------------------
@@ -476,12 +480,8 @@ function drawHouseKeypoints() {
     let x = smoothed ? smoothed.x : raw.x;
     let y = smoothed ? smoothed.y : raw.y;
 
-    let c = raw ? raw.confidence : 0;
-    let r = map(c, 0, 1, 255, 0);
-    let g = map(c, 0, 1, 0, 255);
-
-    fill(r, g, 0);
-    ellipse(x, y, 10, 10);
+    fill(0, 0, 255);
+    ellipse(x, y, 12, 12);
   }
   pop();
 }
@@ -594,8 +594,12 @@ function houseForceNextStep() {
     houseStepDone = true;
   }
 
+  // ✅ 다음 단계(혹은 완료 화면) 진입 시간 갱신 → 7초 카운트 다시 시작
+  houseStepStartTime = millis();
+
   console.log("[House] 강제 진행 후 houseStep:", houseStep, "houseStepDone:", houseStepDone);
 }
+
 
 
 function housePointInRect(px, py, r) {
@@ -650,9 +654,9 @@ function houseDrawFlashEffect() {
 }
 
 function houseDrawPhotoButton() {
-  let r = 34;
+  let r = 50;
   let cx = width / 2;
-  let cy = height - 60;
+  let cy = height - 100;
 
   housePhotoBtn.x = cx - r;
   housePhotoBtn.y = cy - r;
@@ -705,8 +709,44 @@ function houseDrawCountdownOverlay() {
 }
 
 function houseDrawPhotoPreview() {
-  background(0);
+  background(200, 195, 185);
 
+  // ✅ 640x480 기준으로 스케일 (너무 커지지 않게)
+  let ui = min(width / 640, height / 480);
+  ui = constrain(ui, 1.0, 1.6);
+
+  // ====== 상단 캡션 ======
+  let topH = 56 * ui;
+  push();
+  resetMatrix();
+  noStroke();
+  fill(255, 80);
+  rect(0, 0, width, topH);
+
+  fill(20);
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  textSize(20 * ui);
+  text("사진을 확인하고 저장하거나 다시 찍을 수 있어요", width / 2, topH / 2);
+  pop();
+
+  // ====== 하단 패널(바) ======
+  let panelH = 110 * ui;
+  let panelY = height - panelH;
+
+  push();
+  resetMatrix();
+  noStroke();
+  fill(255, 95);
+  rect(0, panelY, width, panelH);
+
+  // 패널 위쪽 얇은 하이라이트 라인
+  stroke(255, 40);
+  strokeWeight(2);
+  line(0, panelY, width, panelY);
+  pop();
+
+  // ====== 이미지 프리뷰 영역 ======
   if (houseCapturedImg) {
     push();
     resetMatrix();
@@ -714,60 +754,92 @@ function houseDrawPhotoPreview() {
 
     let iw = houseCapturedImg.width;
     let ih = houseCapturedImg.height;
-    let scale = min(width / iw, height / ih);
+
+    // 상단/하단 UI 영역 제외한 공간에 맞춤
+    let availW = width * 0.92;
+    let availH = height - topH - panelH - 18 * ui;
+    let scale = min(availW / iw, availH / ih);
+
     let w = iw * scale;
     let h = ih * scale;
+    let cx = width / 2;
+    let cy = topH + (availH / 2) + 6 * ui;
 
-    image(houseCapturedImg, width/2, height/2, w, h);
+    // 그림자 느낌(바깥)
+    noStroke();
+    fill(0, 120);
+    rectMode(CENTER);
+    rect(cx, cy + 10 * ui, w + 10 * ui, h + 7 * ui, 18 * ui);
 
+    // 이미지
+    image(houseCapturedImg, cx, cy, w, h);
+
+    // 프레임
     noFill();
     stroke(255);
-    strokeWeight(6);
-    rectMode(CENTER);
-    rect(width/2, height/2, w, h, 10);
+    strokeWeight(3 * ui);
+    rect(cx, cy, w, h, 14 * ui);
+
     pop();
   }
 
-  let btnW = 160, btnH = 52;
-  let gap = 18;
-  let cy = height - 55;
+  // ====== 버튼 크기(너무 안 커지게) ======
+  let btnW = min(240 * ui, width * 0.28);
+  let btnH = 54 * ui;
+  let gap = 16 * ui;
 
-  let leftCx  = width/2 - (btnW/2 + gap/2);
-  let rightCx = width/2 + (btnW/2 + gap/2);
+  let cyBtn = panelY + panelH / 2;
 
-  houseRetakeBtn.x = leftCx - btnW/2;
-  houseRetakeBtn.y = cy - btnH/2;
+  let leftCx = width / 2 - (btnW / 2 + gap);
+  let rightCx = width / 2 + (btnW / 2 + gap);
+
+  houseRetakeBtn.x = leftCx - btnW / 2;
+  houseRetakeBtn.y = cyBtn - btnH / 2;
   houseRetakeBtn.w = btnW;
   houseRetakeBtn.h = btnH;
 
-  houseSaveQRBtn.x = rightCx - btnW/2;
-  houseSaveQRBtn.y = cy - btnH/2;
+  houseSaveQRBtn.x = rightCx - btnW / 2;
+  houseSaveQRBtn.y = cyBtn - btnH / 2;
   houseSaveQRBtn.w = btnW;
   houseSaveQRBtn.h = btnH;
 
   let hoverRetake = housePointInRect(mouseX, mouseY, houseRetakeBtn);
-  let hoverSave   = housePointInRect(mouseX, mouseY, houseSaveQRBtn);
+  let hoverSave = housePointInRect(mouseX, mouseY, houseSaveQRBtn);
 
+  // ====== 버튼 스타일(캡슐 + 보더 + 살짝 그림자) ======
   push();
   resetMatrix();
-  noStroke();
-
-  fill(hoverRetake ? 245 : 230);
-  rect(houseRetakeBtn.x, houseRetakeBtn.y, btnW, btnH, 16);
-  fill(0);
+  rectMode(CORNER);
   textAlign(CENTER, CENTER);
-  textSize(16);
-  text("다시 찍기", leftCx, cy);
-
-  fill(hoverSave ? color(230,164,174) : color(200,150,160));
-  rect(houseSaveQRBtn.x, houseSaveQRBtn.y, btnW, btnH, 16);
-  fill(0);
-  text("QR 저장", rightCx, cy);
-
-  fill(255);
   textStyle(BOLD);
-  textSize(20);
-  text("사진을 확인하고 저장하거나 다시 찍을 수 있어요", width/2, 26);
+  textSize(18 * ui);
+
+  // 공통 그림자
+  noStroke();
+  fill(0, 90);
+  rect(houseRetakeBtn.x, houseRetakeBtn.y + 4 * ui, btnW, btnH, 999);
+  rect(houseSaveQRBtn.x, houseSaveQRBtn.y + 4 * ui, btnW, btnH, 999);
+
+  // 다시 찍기 (화이트 캡슐)
+  stroke(255, 130);
+  strokeWeight(2);
+  fill(hoverRetake ? 255 : 245);
+  rect(houseRetakeBtn.x, houseRetakeBtn.y, btnW, btnH, 999);
+
+  noStroke();
+  fill(20);
+  text("다시 찍기", leftCx, cyBtn);
+
+  // QR 저장 (핑크 계열 캡슐)
+  stroke(255, 90);
+  strokeWeight(2);
+  fill(hoverSave ? color(235, 175, 185) : color(215, 155, 165));
+  rect(houseSaveQRBtn.x, houseSaveQRBtn.y, btnW, btnH, 999);
+
+  noStroke();
+  fill(20);
+  text("QR 저장", rightCx, cyBtn);
+
   pop();
 }
 
@@ -871,7 +943,7 @@ function drawHouseUI() {
 
   // ✅ 완료 상태: houseStepDone === true
   if (houseStepDone) {
-    desc = "집 짓기 완료! 셔터를 눌러 사진을 찍어보세요!";
+    desc = "집 짓기 완료! 셔터를 눌러 뿌듯한 순간을 사진으로 기록해 보세요!";
   } else {
     // ✅ 진행 중 단계 텍스트
     if (houseStep === 1)
@@ -881,7 +953,7 @@ function drawHouseUI() {
     else if (houseStep === 3)
       desc = `3단계) 망치질: 오른손을 위아래로 5회 왕복해서 움직여요! (${houseHammerCycles}/5)`;
     else if (houseStep === 4)
-      desc = `4단계) 집들이 인사: 오른손을 좌우로 3회 흔들어요! (${houseWaveCycles}/3)`;
+      desc = `4단계) 집들이 인사: 오른손을 좌우로 인사하듯 3회 흔들어요! (${houseWaveCycles}/3)`;
   }
 
   push();

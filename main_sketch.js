@@ -511,30 +511,33 @@ function mousePressed() {
     if (selectedGame === "animal")  mousePressedAnimalGame();
     else if (selectedGame === "cooking") mousePressedCookingGame();
     else if (selectedGame === "house")   mousePressedHouseGame();
-  } else if (phase === 5) {
+  }  else if (phase === 5) {
     // ✅ QR 화면 들어온 지 3000ms 이내의 클릭은 무시 (디바운스)
-    if (millis() - qrEnterTime < 3000) {
+    if (millis() - qrEnterTime < 3000) return;
+
+    // ✅ 버튼 클릭 판정 함수
+    const hit = (btn) =>
+      mouseX > btn.x && mouseX < btn.x + btn.w &&
+      mouseY > btn.y && mouseY < btn.y + btn.h;
+
+    // ✅ 1) 처음으로 (전체 리셋)
+    if (hit(qrHomeBtn)) {
+      resetAllState();     // 너희 기존 전체 리셋 그대로
       return;
     }
-    // 🔹 QR 화면에서의 "처음으로" 버튼
-    let btnX = width / 2;
-    let btnY = height - 70;
-    let btnW = 220;
-    let btnH = 50;
 
-    let hovering =
-      mouseX > btnX - btnW / 2 &&
-      mouseX < btnX + btnW / 2 &&
-      mouseY > btnY - btnH / 2 &&
-      mouseY < btnY + btnH / 2;
-
-    if (hovering) {
-      resetAllState();
+    // ✅ 2) 다른 템플릿 해보기 (이모지 유지, 템플릿 선택으로)
+    if (hit(qrTryBtn)) {
+      goToTemplateSelectKeepEmoji();
+      return;
     }
   }
+
 }
 
 function resetAllState() {
+  resetQRPageState();
+  
   if (typeof resetQRPageState === "function") resetQRPageState();
 
   // 1) 화면 단계 기본값
