@@ -48,6 +48,9 @@ let houseGoToQRTriggered = false;
 let houseLastSkipTime = 0;
 let HOUSE_SKIP_COOLDOWN = 800;
 
+let houseStepStartTime = 0;
+let HOUSE_SKIP_DELAY_MS = 7000; // 7초 후 SKIP 활성화
+
 let houseImgs = [];
 
 // ====== 캡쳐(사진찍기) : House ======
@@ -127,6 +130,9 @@ function initHouseGame() {
   houseImgs[2] = loadImage("house2.png")
   houseImgs[3] = loadImage("house3.png")
   houseImgs[4] = loadImage("house4.png")
+
+  houseStepStartTime = millis();
+
 }
 
 // BodyPose 콜백
@@ -307,6 +313,7 @@ function houseUpdateAxe() {
 
   if (houseAxeCount >= 1) {
     houseStep = 2;
+    houseStepStartTime = millis();
     console.log("1단계 완료 → 2단계");
   }
 }
@@ -355,6 +362,7 @@ function houseUpdateSaw() {
 
   if (houseSawCycles >= 3) {
     houseStep = 3;
+    houseStepStartTime = millis();
     console.log("2단계 완료 → 3단계");
   }
 }
@@ -392,6 +400,7 @@ function houseUpdateHammer() {
 
   if (houseHammerCycles >= 5) {
     houseStep = 4;
+    houseStepStartTime = millis();
     console.log("3단계 완료 → 4단계");
   }
 }
@@ -441,6 +450,7 @@ function houseUpdateWave() {
 
   if (houseWaveCycles >= 3) {
     houseStepDone = true;
+    houseStepStartTime = millis();
   }
 }
 
@@ -507,6 +517,7 @@ function mousePressedHouseGame() {
     if (houseStepDone && houseStep === 4) {
       // → 4단계를 다시 수행해야 하도록 리셋
       resetHouseStep4();
+      houseStepStartTime = millis();
       console.log("[House] BACK (완료 화면) → 4단계 다시 시작");
       return;
     }
@@ -519,6 +530,7 @@ function mousePressedHouseGame() {
       } else {
         // 2,3,4 단계에서 BACK → 이전 집짓기 단계로
         houseStep--;
+        houseStepStartTime = millis();
 
         if (houseStep === 1) resetHouseStep1();
         else if (houseStep === 2) resetHouseStep2();
@@ -546,6 +558,7 @@ function mousePressedHouseGame() {
 
   // 🔹 2) SKIP (완료되지 않은 경우만)
   if (!houseStepDone) {
+    if (!houseCanShowSkip()) return;
     if (millis() - houseLastSkipTime < HOUSE_SKIP_COOLDOWN) {
       console.log("[House] SKIP 쿨타임 중, 무시");
       return;
@@ -798,84 +811,49 @@ function resetHouseStep4() {
   houseStepDone = false;
 }
 
-// ================== UI ==================
-function drawHouseUI() {
-  push();
-  fill(0, 180);
-  rect(0, 0, width, 60);
-
-  fill(255);
-  textSize(19);
-  textAlign(CENTER, CENTER);
-  textFont(fontTemplate);
-
-  // ✅ 집 짓기 완료 상태라면: 완료 문구 + 왼쪽 BACK, 오른쪽 QR(80x30)
-  if (houseStepDone) {
-  let desc = "집 짓기 완료! 셔터를 눌러 사진을 찍어보세요!";
-  text(desc, width / 2, 30);
-
-  let btnW = 80;
-  let btnH = 30;
-  let centerY = 30;
-  let leftCenterX  = btnW / 2 + 20; // BACK만
-
-  houseBackBtn.x = leftCenterX - btnW / 2;
-  houseBackBtn.y = centerY - btnH / 2;
-  houseBackBtn.w = btnW;
-  houseBackBtn.h = btnH;
-
-  let backHover =
-    mouseX > houseBackBtn.x && mouseX < houseBackBtn.x + houseBackBtn.w &&
-    mouseY > houseBackBtn.y && mouseY < houseBackBtn.y + houseBackBtn.h;
-
-  push();
-  rectMode(CORNER);
-  noStroke();
-  fill(backHover ? color(250, 210, 120) : color(230, 190, 140));
-  rect(houseBackBtn.x, houseBackBtn.y, btnW, btnH, 8);
-
-  fill(0);
-  textSize(14);
-  textAlign(CENTER, CENTER);
-  text("< 이전", leftCenterX, centerY);
-  pop();
-
-  return;
+function houseCanShowSkip() {
+  if (houseStepDone) return false; // 완료 화면엔 skip 없음
+  return (millis() - houseStepStartTime) >= HOUSE_SKIP_DELAY_MS;
 }
 
-  // ✅ 진행 중 단계 텍스트
-  let desc = "";
-  if (houseStep === 1)
-    desc = "1단계) 도끼질: 양손 깍지를 끼고, 머리 위에서 아래로 크게 내리세요!";
-  else if (houseStep === 2)
-    desc = `2단계) 톱질: 옆으로 서서 양손 깍지를 끼고, 앞뒤로 움직여요! (${houseSawCycles}/3)`;
-  else if (houseStep === 3)
-    desc = `3단계) 망치질: 오른손을 위아래로 5회 왕복해서 움직여요! (${houseHammerCycles}/5)`;
-  else if (houseStep === 4)
-    desc = `4단계) 집들이 인사: 오른손을 좌우로 3회 흔들어요! (${houseWaveCycles}/3)`;
+function houseSkipRemainingSec() {
+  let elapsed = millis() - houseStepStartTime;
+  let remain = ceil((HOUSE_SKIP_DELAY_MS - elapsed) / 1000);
+  return max(0, remain);
+}
 
-  text(desc, width / 2, 30);
-  
-  // 🔹 왼쪽 BACK, 오른쪽 SKIP (대칭)
-  let btnW = 80;
-  let btnH = 30;
-  let centerY = 30;
 
-  let backCenterX = btnW / 2 + 20;
-  let skipCenterX = width - btnW / 2 - 20;
+// ================== UI ==================
+function drawHouseUI() {
+  let margin = 40;
 
-  // BACK 버튼 영역
-  houseBackBtn.x = backCenterX - btnW / 2;
-  houseBackBtn.y = centerY - btnH / 2;
-  houseBackBtn.w = btnW;
-  houseBackBtn.h = btnH;
+  // ===== 버튼 공통 규격 (animal과 동일) =====
+  // BACK: 110x52, SKIP: 180x52
+  houseBackBtn.w = 110;
+  houseBackBtn.h = 52;
+  houseBackBtn.x = margin;
+  houseBackBtn.y = margin;
 
-  // SKIP 버튼 영역
-  houseSkipBtn.x = skipCenterX - btnW / 2;
-  houseSkipBtn.y = centerY - btnH / 2;
-  houseSkipBtn.w = btnW;
-  houseSkipBtn.h = btnH;
+  houseSkipBtn.w = 180;
+  houseSkipBtn.h = 52;
+  houseSkipBtn.x = width - houseSkipBtn.w - margin;
+  houseSkipBtn.y = margin;
 
+  // ===== 상단 BAR 크기 계산 (위아래 여백 대칭) =====
+  let topPad = houseBackBtn.y;   // = margin
+  let bottomPad = topPad;
+  let barH = topPad + houseBackBtn.h + bottomPad;
+  let barCenterY = barH / 2;
+
+  // ===== 상단 바 배경 =====
+  push();
+  resetMatrix();
+  fill(0, 180);
+  noStroke();
+  rect(0, 0, width, barH);
+  pop();
+
+  // ===== hover 체크 =====
   let backHover =
     mouseX > houseBackBtn.x &&
     mouseX < houseBackBtn.x + houseBackBtn.w &&
@@ -888,29 +866,82 @@ function drawHouseUI() {
     mouseY > houseSkipBtn.y &&
     mouseY < houseSkipBtn.y + houseSkipBtn.h;
 
-  // BACK 버튼
+  // ===== 안내 문구 (bar 중앙) =====
+  let desc = "";
+
+  // ✅ 완료 상태: houseStepDone === true
+  if (houseStepDone) {
+    desc = "집 짓기 완료! 셔터를 눌러 사진을 찍어보세요!";
+  } else {
+    // ✅ 진행 중 단계 텍스트
+    if (houseStep === 1)
+      desc = "1단계) 도끼질: 양손 깍지를 끼고, 머리 위에서 아래로 크게 내리세요!";
+    else if (houseStep === 2)
+      desc = `2단계) 톱질: 옆으로 서서 양손 깍지를 끼고, 앞뒤로 움직여요! (${houseSawCycles}/3)`;
+    else if (houseStep === 3)
+      desc = `3단계) 망치질: 오른손을 위아래로 5회 왕복해서 움직여요! (${houseHammerCycles}/5)`;
+    else if (houseStep === 4)
+      desc = `4단계) 집들이 인사: 오른손을 좌우로 3회 흔들어요! (${houseWaveCycles}/3)`;
+  }
+
   push();
+  resetMatrix();
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
+  textSize(35);
+  text(desc, width / 2, barCenterY);
+  pop();
+
+  // ===== BACK 버튼 =====
+  push();
+  resetMatrix();
   rectMode(CORNER);
-  noStroke();
+  stroke(0);
+  strokeWeight(1.5);
   fill(backHover ? color(250, 210, 120) : color(230, 190, 140));
-  rect(houseBackBtn.x, houseBackBtn.y, btnW, btnH, 8);
+  rect(houseBackBtn.x, houseBackBtn.y, houseBackBtn.w, houseBackBtn.h, 10);
 
   fill(0);
-  textSize(14);
-  textAlign(CENTER, CENTER);
-  text("< 이전", backCenterX, centerY);
-  pop();
-
-  // SKIP 버튼
-  push();
-  rectMode(CORNER);
   noStroke();
-  fill(skipHover ? color(250, 210, 120) : color(230, 190, 140));
-  rect(houseSkipBtn.x, houseSkipBtn.y, btnW, btnH, 8);
+  textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
+  textSize(26);
+  text(
+    "< 이전",
+    houseBackBtn.x + houseBackBtn.w / 2,
+    houseBackBtn.y + houseBackBtn.h / 2
+  );
+  pop();
+
+  // ===== SKIP 버튼 (진행 중일 때만) =====
+if (!houseStepDone) {
+  let canSkip = houseCanShowSkip();
+  let remainSec = houseSkipRemainingSec();
+
+  push();
+  resetMatrix();
+  rectMode(CORNER);
+  stroke(0);
+  strokeWeight(1.5);
+
+  if (canSkip) fill(skipHover ? color(255, 230, 160) : color(245, 215, 140));
+  else fill(210); // ⏳ 비활성 회색
+
+  rect(houseSkipBtn.x, houseSkipBtn.y, houseSkipBtn.w, houseSkipBtn.h, 10);
 
   fill(0);
-  textSize(14);
+  noStroke();
   textAlign(CENTER, CENTER);
-  text("건너뛰기 >", skipCenterX, centerY);
+  textFont(fontTemplate);
+  textSize(24);
+
+  if (canSkip) {
+    text("건너뛰기 >", houseSkipBtn.x + houseSkipBtn.w/2, houseSkipBtn.y + houseSkipBtn.h/2);
+  } else {
+    text(`건너뛰기 (${remainSec}초)`, houseSkipBtn.x + houseSkipBtn.w/2, houseSkipBtn.y + houseSkipBtn.h/2);
+  }
   pop();
+}
+
 }

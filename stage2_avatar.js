@@ -1415,7 +1415,7 @@ function drawAvatarSelect() {
   noStroke();
   textFont(fontTemplate);
   textAlign(CENTER, CENTER);
-  textSize(14);
+  textSize(26);
   text("< 이전", backX, backY);
   pop();
 }
@@ -1524,7 +1524,7 @@ function drawHumanEmojiPage() {
   humanBackBtn.w = 110;
   humanBackBtn.h = 52;
   humanBackBtn.x = margin;
-  humanBackBtn.y = margin*3;
+  humanBackBtn.y = margin*2.7;
 
   // 상단 바: 제목 + '다음 단계 >' 버튼
   push();
@@ -1533,11 +1533,11 @@ function drawHumanEmojiPage() {
   textFont(fontTemplate);
   textStyle(BOLD);
   textAlign(CENTER, CENTER);
-  textSize(24);
+  textSize(40);
 
   let titleText =
     humanEmojiStep === 1 ? "이모지 커스텀 1단계" : "이모지 커스텀 2단계";
-  text(titleText, width / 2, margin);
+  text(titleText, width / 2, margin + 40);
   pop();
   
   // 왼쪽 위 Back 버튼 그리기
@@ -1553,14 +1553,14 @@ function drawHumanEmojiPage() {
   noStroke();
   textAlign(CENTER, CENTER);
   textFont(fontTemplate);
-  textSize(14);
+  textSize(26);
   text("< 이전", humanBackBtn.x + humanBackBtn.w/2, humanBackBtn.y + humanBackBtn.h/2);
   pop();
 
   humanNextStepBtn.w = 180;
   humanNextStepBtn.h = 52;
   humanNextStepBtn.x = width - humanNextStepBtn.w - margin;
-  humanNextStepBtn.y = margin*3;
+  humanNextStepBtn.y = margin*2.7;
 
   if (humanEmojiStep === 1) {
     // 1단계: "다음 단계 >" (모든 부위 선택되어야 활성)
@@ -1590,7 +1590,7 @@ function drawHumanEmojiPage() {
     noStroke();
     textAlign(CENTER, CENTER);
     textFont(fontTemplate);
-    textSize(16);
+    textSize(26);
     text(
       "다음 단계 >",
       humanNextStepBtn.x + humanNextStepBtn.w / 2,
@@ -1619,7 +1619,7 @@ function drawHumanEmojiPage() {
     noStroke();
     textAlign(CENTER, CENTER);
     textFont(fontTemplate);
-    textSize(16);
+    textSize(26);
     text(
       "게임 시작 >",
       humanNextStepBtn.x + humanNextStepBtn.w / 2,

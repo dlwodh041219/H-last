@@ -62,6 +62,10 @@ let cookGoToQRTriggered = false;
 let cookLastSkipTime = 0;          // ★ 추가
 let COOK_SKIP_COOLDOWN = 800;    // ms
 
+let cookStepStartTime = 0;
+let COOK_SKIP_DELAY_MS = 7000; // 7초 후 SKIP 활성화
+
+
 // ====== 캡쳐(사진찍기) : Cooking ======
 let cookCaptureMode = "NONE"; // "NONE" | "PREVIEW"
 let cookCapturedImg = null;   // p5.Image
@@ -107,6 +111,9 @@ function initCookingGame() {
   cookImgs[1] = loadImage("cook2.png");
   cookImgs[2] = loadImage("cook3.png");
   cookImgs[3] = loadImage("cook4.png");
+
+  cookStepStartTime = millis();
+
 }
 
 function cookResetState() {
@@ -154,6 +161,9 @@ function cookResetState() {
 
   cookCountdownActive = false;
   cookCountdownStart = 0;
+
+  cookStepStartTime = millis();
+
 }
 
 // BodyPose 콜백
@@ -330,6 +340,7 @@ function cookUpdateChop() {
 
   if (cookChopCycles >= 3) {
     cookStage = 1; // 2단계로
+    cookStepStartTime = millis();
     cookDetectedText = "1단계 완료! → 2단계로 이동";
     console.log("1단계 완료 → 2단계!");
   }
@@ -375,6 +386,7 @@ function cookUpdatePour() {
 
   if (cookBothCycles >= 3) {
     cookStage = 2; // 3단계로
+    cookStepStartTime = millis();
     cookDetectedText = "2단계 완료! → 3단계로 이동";
     console.log("2단계 완료 → 3단계!");
   }
@@ -427,6 +439,7 @@ function cookUpdateFry() {
 
   if (cookFryCycles >= 3) {
     cookStage = 3; // 4단계(간보기)
+    cookStepStartTime = millis();
     cookDetectedText = "3단계 완료! → 4단계(간보기)로 이동";
     console.log("3단계 완료 → 4단계!");
   }
@@ -496,6 +509,7 @@ function cookUpdateTaste() {
   if (cookTasteCycles >= COOK_TASTE_TARGET && !cookStageDone) {
     console.log("간보기 3회 완료!");
     cookStage = 4;
+    cookStepStartTime = millis();
     cookStageDone = true;
     cookDetectedText =
       "🎉요리 완료! 사랑하는 사람들과 음식을 나눠 보세요!🎉";
@@ -572,6 +586,7 @@ function mousePressedCookingGame() {
       // 👉 stage 3의 완성단계에서 back은 stage 3의 4단계
       // = 간보기 단계(cookStage 3)로 되돌리고, 그 단계 리셋
       cookStage = 3;
+      cookStepStartTime = millis();
       resetCookingStageTaste();
       console.log("[Cooking] BACK (완료 화면) → 4단계(간보기) 다시 시작");
       return;
@@ -586,6 +601,7 @@ function mousePressedCookingGame() {
       } else {
         // 👉 2,3,4 단계에서 back은 바로 이전 요리 단계로
         cookStage--;   // 한 단계 뒤로
+        cookStepStartTime = millis();
 
         if (cookStage === 0) {
           resetCookingStageChop();
@@ -620,6 +636,7 @@ function mousePressedCookingGame() {
   // 🔹 2) SKIP / QR 처리
   // 완료 상태가 아니면 SKIP 버튼만 작동
   if (!(cookStage === 4 && cookStageDone)) {
+    if (!cookCanShowSkip()) return;
     // 쿨타임 체크
     if (millis() - cookLastSkipTime < COOK_SKIP_COOLDOWN) {
       console.log("[Cooking] SKIP 쿨타임 중, 무시");
@@ -660,6 +677,8 @@ function cookForceNextStage() {
   }
 
   console.log("[Cooking] 강제 진행 후 cookStage:", cookStage);
+
+  cookStepStartTime = millis();
 }
 
 
@@ -885,93 +904,50 @@ function cookDrawPhotoPreview() {
   pop();
 }
 
+function cookCanShowSkip() {
+  // 완료 화면에서는 skip 없음
+  if (cookStage === 4 && cookStageDone) return false;
+  return (millis() - cookStepStartTime) >= COOK_SKIP_DELAY_MS;
+}
+
+function cookSkipRemainingSec() {
+  let elapsed = millis() - cookStepStartTime;
+  let remain = ceil((COOK_SKIP_DELAY_MS - elapsed) / 1000);
+  return max(0, remain);
+}
+
 
 // 화면 표시(UI)
 function cookDrawStageInfo() {
-  // 상단 바 배경
+  let margin = 40;
+
+  // ===== 버튼 공통 규격 (animal과 동일) =====
+  // BACK: 110x52, SKIP: 180x52
+  cookBackBtn.w = 110;
+  cookBackBtn.h = 52;
+  cookBackBtn.x = margin;
+  cookBackBtn.y = margin;
+
+  cookSkipBtn.w = 180;
+  cookSkipBtn.h = 52;
+  cookSkipBtn.x = width - cookSkipBtn.w - margin;
+  cookSkipBtn.y = margin;
+
+  // ===== 상단 BAR 크기 계산 (위아래 여백 대칭) =====
+  let topPad = cookBackBtn.y;   // = margin
+  let bottomPad = topPad;
+  let barH = topPad + cookBackBtn.h + bottomPad;
+  let barCenterY = barH / 2;
+
+  // ===== 상단 바 배경 =====
+  push();
+  resetMatrix();
   fill(0, 180);
   noStroke();
-  rect(0, 0, width, 60);
-
-  fill(255);
-  textSize(20);
-  textAlign(CENTER, CENTER);
-  textFont(fontTemplate); // 폰트 통일 (원하면 빼도 됨)
-
-  // ✅ 4단계 완료 상태일 때: 완료 문구 + 왼쪽 BACK, 오른쪽 QR(80x30)
-  if (cookStage === 4 && cookStageDone) {
-  let desc = "요리하기 완료! 셔터를 눌러 행복한 순간을 사진으로 기록해 보세요!";
-  text(desc, width / 2, 30);
-
-  let btnW = 80;
-  let btnH = 30;
-  let centerY = 30;
-  let leftCenterX  = btnW / 2 + 20; // BACK만
-
-  // BACK 버튼 영역
-  cookBackBtn.x = leftCenterX - btnW / 2;
-  cookBackBtn.y = centerY - btnH / 2;
-  cookBackBtn.w = btnW;
-  cookBackBtn.h = btnH;
-
-  let backHover =
-    mouseX > cookBackBtn.x &&
-    mouseX < cookBackBtn.x + cookBackBtn.w &&
-    mouseY > cookBackBtn.y &&
-    mouseY < cookBackBtn.y + cookBackBtn.h;
-
-  // BACK 버튼
-  push();
-  rectMode(CORNER);
-  noStroke();
-  fill(backHover ? color(250, 210, 120) : color(230, 190, 140));
-  rect(cookBackBtn.x, cookBackBtn.y, btnW, btnH, 8);
-
-  fill(0);
-  textSize(14);
-  textAlign(CENTER, CENTER);
-  text("< 이전", leftCenterX, centerY);
+  rect(0, 0, width, barH);
   pop();
 
-  return;
-}
-
-  // ✅ 진행 중 단계 텍스트
-  let desc = "";
-  if (cookStage === 0) {
-    desc = `1단계) 재료 칼질: 오른손을 위아래로 크게 3회 움직여요! (${cookChopCycles}/3)`;
-  } else if (cookStage === 1) {
-    desc = `2단계) 재료 넣기: 양손을 머리 위아래로 크게 3회 움직여요! (${cookBothCycles}/3)`;
-  } else if (cookStage === 2) {
-    desc = `3단계) 재료 볶기: 오른손을 좌우로 3회 크게 움직여요! (${cookFryCycles}/3)`;
-  } else if (cookStage === 3) {
-    desc = `4단계) 간보기: 입을 3회 크게 벌렸다 오므리세요! (${cookTasteCycles}/${COOK_TASTE_TARGET})`;
-  }
-
-  noStroke();
-  fill(255);
-  text(desc, width / 2, 30);
-
-  // 🔹 왼쪽 BACK, 오른쪽 SKIP (대칭, 80x30)
-  let btnW = 80;
-  let btnH = 30;
-  let centerY = 30;
-
-  let backCenterX = btnW / 2 + 20;
-  let skipCenterX = width - btnW / 2 - 20;
-
-  // BACK 버튼 영역
-  cookBackBtn.x = backCenterX - btnW / 2;
-  cookBackBtn.y = centerY - btnH / 2;
-  cookBackBtn.w = btnW;
-  cookBackBtn.h = btnH;
-
-  // SKIP 버튼 영역
-  cookSkipBtn.x = skipCenterX - btnW / 2;
-  cookSkipBtn.y = centerY - btnH / 2;
-  cookSkipBtn.w = btnW;
-  cookSkipBtn.h = btnH;
-
+  // ===== hover 체크 =====
   let backHover =
     mouseX > cookBackBtn.x &&
     mouseX < cookBackBtn.x + cookBackBtn.w &&
@@ -984,29 +960,86 @@ function cookDrawStageInfo() {
     mouseY > cookSkipBtn.y &&
     mouseY < cookSkipBtn.y + cookSkipBtn.h;
 
-  // BACK 버튼
+  // ===== 안내 문구 (bar 중앙) =====
+  let desc = "";
+
+  // ✅ 완료 상태: cookStage === 4 && cookStageDone
+  if (cookStage === 4 && cookStageDone) {
+    desc = "요리하기 완료! 셔터를 눌러 행복한 순간을 사진으로 기록해 보세요!";
+  } else {
+    // ✅ 진행 중 단계 텍스트
+    if (cookStage === 0) {
+      desc = `1단계) 재료 칼질: 오른손을 위아래로 크게 3회 움직여요! (${cookChopCycles}/3)`;
+    } else if (cookStage === 1) {
+      desc = `2단계) 재료 넣기: 양손을 머리 위아래로 크게 3회 움직여요! (${cookBothCycles}/3)`;
+    } else if (cookStage === 2) {
+      desc = `3단계) 재료 볶기: 오른손을 좌우로 3회 크게 움직여요! (${cookFryCycles}/3)`;
+    } else if (cookStage === 3) {
+      desc = `4단계) 간보기: 입을 3회 크게 벌렸다 오므리세요! (${cookTasteCycles}/${COOK_TASTE_TARGET})`;
+    }
+  }
+
   push();
+  resetMatrix();
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
+  textSize(35);
+  text(desc, width / 2, barCenterY);
+  pop();
+
+  // ===== BACK 버튼 =====
+  push();
+  resetMatrix();
   rectMode(CORNER);
-  noStroke();
+  stroke(0);
+  strokeWeight(1.5);
   fill(backHover ? color(250, 210, 120) : color(230, 190, 140));
-  rect(cookBackBtn.x, cookBackBtn.y, btnW, btnH, 8);
+  rect(cookBackBtn.x, cookBackBtn.y, cookBackBtn.w, cookBackBtn.h, 10);
 
   fill(0);
-  textSize(14);
-  textAlign(CENTER, CENTER);
-  text("< 이전", backCenterX, centerY);
-  pop();
-
-  // SKIP 버튼
-  push();
-  rectMode(CORNER);
   noStroke();
-  fill(skipHover ? color(250, 210, 120) : color(230, 190, 140));
-  rect(cookSkipBtn.x, cookSkipBtn.y, btnW, btnH, 8);
+  textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
+  textSize(26);
+  text(
+    "< 이전",
+    cookBackBtn.x + cookBackBtn.w / 2,
+    cookBackBtn.y + cookBackBtn.h / 2
+  );
+  pop();
+
+  // ===== SKIP 버튼 (진행 중일 때만) =====
+  // ===== SKIP 버튼 (완료 상태에서는 숨김) =====
+if (!(cookStage === 4 && cookStageDone)) {
+  let canSkip = cookCanShowSkip();
+  let remainSec = cookSkipRemainingSec();
+
+  push();
+  resetMatrix();
+  rectMode(CORNER);
+  stroke(0);
+  strokeWeight(1.5);
+
+  // 비활성(회색) / 활성(기존 색)
+  if (canSkip) fill(skipHover ? color(255, 230, 160) : color(245, 215, 140));
+  else fill(210);
+
+  rect(cookSkipBtn.x, cookSkipBtn.y, cookSkipBtn.w, cookSkipBtn.h, 10);
 
   fill(0);
-  textSize(14);
+  noStroke();
   textAlign(CENTER, CENTER);
-  text("건너뛰기 >", skipCenterX, centerY);
+  textFont(fontTemplate);
+  textSize(24);
+
+  if (canSkip) {
+    text("건너뛰기 >", cookSkipBtn.x + cookSkipBtn.w / 2, cookSkipBtn.y + cookSkipBtn.h / 2);
+  } else {
+    text(`건너뛰기 (${remainSec}초)`, cookSkipBtn.x + cookSkipBtn.w / 2, cookSkipBtn.y + cookSkipBtn.h / 2);
+  }
+
   pop();
+}
+
 }

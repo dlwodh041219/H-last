@@ -53,6 +53,9 @@ let animalGoToQRTriggered = false;
 let animalLastSkipTime = 0;
 let ANIMAL_SKIP_COOLDOWN = 800;
 
+let animalStepStartTime = 0;
+let ANIMAL_SKIP_DELAY_MS = 7000;  // 7초 후 SKIP 표시
+
 let puppyImgs = [];
 
 let guideImagesReady = { 1:false, 2:false, 3:false, 4:false };
@@ -182,6 +185,8 @@ function initAnimalGame() {
   animalFlashAlpha = 0;
   animalLastCaptureDataURL = null;
 
+  animalStepStartTime = millis();
+
 }
 
 // BodyPose 콜백
@@ -258,6 +263,8 @@ function nextAnimalStep() {
     animalSwingCount = 0;
     animalSwingTimer = 0;
   }
+
+  animalStepStartTime = millis();
 }
 
 
@@ -310,6 +317,7 @@ function drawAnimalGame() {
   // 단계 완료 시 다음 단계로
   if (animalStepDone) {
     animalCurrentStep++;
+    animalStepStartTime = millis();
     animalStepDone = false;
 
     // ⭐ 새 단계 가이드 다시 켜기 (단, 1~4단계까지만)
@@ -900,6 +908,7 @@ function mousePressedAnimalGame() {
       } else {
         // 👉 2,3,4 단계에서 BACK = 이전 동물 단계로
         animalCurrentStep--;
+        animalStepStartTime = millis();
 
         if (animalCurrentStep === 1) resetAnimalStep1();
         else if (animalCurrentStep === 2) resetAnimalStep2();
@@ -912,6 +921,7 @@ function mousePressedAnimalGame() {
     } else if (animalCurrentStep > 4) {
       // stage 3의 완성단계에서 BACK = 4단계로
       animalCurrentStep = 4;
+      animalStepStartTime = millis();
       resetAnimalStep4();
       console.log("[Animal] BACK (완료 화면) → 4단계로 되돌리기");
     }
@@ -939,25 +949,29 @@ function mousePressedAnimalGame() {
 }
 
 
-  // 🔹 여기서부터는 기존 SKIP / QR 로직 그대로
   if (animalCurrentStep <= 4) {
-    if (millis() - animalLastSkipTime < ANIMAL_SKIP_COOLDOWN) {
-      console.log("[Animal] SKIP 쿨타임 중, 무시");
-      return;
-    }
 
-    if (
-      mouseX > animalSkipBtn.x &&
-      mouseX < animalSkipBtn.x + animalSkipBtn.w &&
-      mouseY > animalSkipBtn.y &&
-      mouseY < animalSkipBtn.y + animalSkipBtn.h
-    ) {
-      console.log("[Animal] SKIP 버튼 클릭 → 다음 단계로");
-      animalLastSkipTime = millis();
-      animalForceNextStep();
-    }
+  // ✅ 7초 지나기 전엔 skip 클릭 자체를 무시
+  if (!animalCanShowSkip()) return;
+
+  if (millis() - animalLastSkipTime < ANIMAL_SKIP_COOLDOWN) {
+    console.log("[Animal] SKIP 쿨타임 중, 무시");
     return;
   }
+
+  if (
+    mouseX > animalSkipBtn.x &&
+    mouseX < animalSkipBtn.x + animalSkipBtn.w &&
+    mouseY > animalSkipBtn.y &&
+    mouseY < animalSkipBtn.y + animalSkipBtn.h
+  ) {
+    console.log("[Animal] SKIP 버튼 클릭 → 다음 단계로");
+    animalLastSkipTime = millis();
+    animalForceNextStep();
+  }
+  return;
+}
+
 }
 
 function animalForceNextStep() {
@@ -965,6 +979,7 @@ function animalForceNextStep() {
   if (animalCurrentStep === 1) {
     // 밥주기 단계로 넘어가면서 당근/그릇을 보이게!
     animalCurrentStep = 2;
+    animalStepStartTime = millis();
     animalStepDone = false;
 
     animalFood.visible = true;
@@ -984,6 +999,7 @@ function animalForceNextStep() {
     animalBowl.visible = false;
 
     animalCurrentStep = 3;
+    animalStepStartTime = millis();
     animalStepDone = false;
 
     console.log("[Animal] SKIP: 2 → 3 (밥주기 건너뜀)");
@@ -993,6 +1009,7 @@ function animalForceNextStep() {
   // 3단계 → 4단계 SKIP
   if (animalCurrentStep === 3) {
     animalCurrentStep = 4;
+    animalStepStartTime = millis();
     animalStepDone = false;
     console.log("[Animal] SKIP: 3 → 4 (쓰다듬기 건너뜀)");
     return;
@@ -1001,6 +1018,7 @@ function animalForceNextStep() {
   // 4단계 → 완료 상태(5) SKIP
   if (animalCurrentStep === 4) {
     animalCurrentStep = 5;    // 완료 화면
+    animalStepStartTime = millis();
     animalStepDone = false;
     console.log("[Animal] SKIP: 4 → 5 (완료로)");
     return;
@@ -1040,131 +1058,153 @@ function resetAnimalStep4() {
   animalStepDone = false;
 }
 
+function animalCanShowSkip() {
+  if (animalCurrentStep > 4) return false; // 완료 화면엔 skip 없음
+  return (millis() - animalStepStartTime) >= ANIMAL_SKIP_DELAY_MS;
+}
+
+function animalSkipRemainingSec() {
+  let elapsed = millis() - animalStepStartTime;
+  let remain = ceil((ANIMAL_SKIP_DELAY_MS - elapsed) / 1000);
+  return max(0, remain);
+}
+
 
 // ================== UI ==================
 function animalDrawUI() {
+  let margin = 40;
+
+  // ===== 버튼 공통 규격 (stage2 스타일) =====
+  animalBackBtn.w = 110;
+  animalBackBtn.h = 52;
+  animalBackBtn.x = margin;
+  animalBackBtn.y = margin;
+
+  animalSkipBtn.w = 180;
+  animalSkipBtn.h = 52;
+  animalSkipBtn.x = width - animalSkipBtn.w - margin;
+  animalSkipBtn.y = margin;
+
+  // ===== 상단 BAR 크기 계산 =====
+  let topPad = animalBackBtn.y;     // 버튼 위 여백(현재 margin=40)
+  let bottomPad = topPad;           // 아래도 똑같이 맞춤
+  let barH = topPad + animalBackBtn.h + bottomPad;
+  let barCenterY = barH / 2;
+
+  // ===== 상단 BAR =====
+  push();
+  resetMatrix();
   fill(0, 180);
-  rect(0, 0, width, 60);
+  noStroke();
+  rect(0, 0, width, barH);
+  pop();
 
+  // hover 체크
+  let hoveringBack = isMouseOver(animalBackBtn);
+  let hoveringSkip = isMouseOver(animalSkipBtn);
+
+  // ===== 안내 문구 =====
+  push();
+  resetMatrix();
   fill(255);
-  textSize(20);
   textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
+  textSize(35);
 
-  // ✅ 완료 상태일 때
   if (animalCurrentStep > 4) {
-    let desc = "동물 키우기 완료! 셔터를 눌러 행복한 순간을 사진으로 기록해 보세요!";
-    text(desc, width / 2, 30);
+    text(
+      "동물 키우기 완료! 셔터를 눌러 행복한 순간을 사진으로 기록해 보세요!",
+      width / 2,
+      barCenterY
+    );
+  } else {
+    let desc = "";
+    if (animalCurrentStep === 1)
+      desc = "1단계) 안아주기: 양팔을 크게 3초 간 벌리세요!";
+    else if (animalCurrentStep === 2)
+      desc = "2단계) 밥 주기: 오른손으로 당근과 그릇을 차례로 2초 간 터치하세요!";
+    else if (animalCurrentStep === 3)
+      desc = `3단계) 쓰다듬기: 오른손을 머리 위아래로 3회 움직이세요! (${animalWaveCount}/${ANIMAL_REQUIRED_WAVES})`;
+    else if (animalCurrentStep === 4)
+      desc = `4단계) 놀아주기: 양팔을 위아래로 3회 움직이세요! (${animalSwingCount}/3)`;
 
-    let btnW = 80;
-    let btnH = 30;
-    let rightCenterX = width - btnW / 2 - 20; // QR
-    let centerY      = 30;
-    let leftCenterX  = btnW / 2 + 20;         // BACK
+    text(desc, width / 2, barCenterY);
+  }
+  pop();
 
-    // QR 버튼 영역 저장
-    animalQRBtn.x = rightCenterX - btnW / 2;
-    animalQRBtn.y = centerY - btnH / 2;
-    animalQRBtn.w = btnW;
-    animalQRBtn.h = btnH;
+  // ===== BACK 버튼 =====
+  push();
+  resetMatrix();
+  rectMode(CORNER);
+  stroke(0);
+  strokeWeight(1.5);
+  fill(hoveringBack ? color(250, 210, 120) : color(230, 190, 140));
+  rect(animalBackBtn.x, animalBackBtn.y, animalBackBtn.w, animalBackBtn.h, 10);
 
-    // BACK 버튼 영역 저장
-    animalBackBtn.x = leftCenterX - btnW / 2;
-    animalBackBtn.y = centerY - btnH / 2;
-    animalBackBtn.w = btnW;
-    animalBackBtn.h = btnH;
+  fill(0);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
+  textSize(26);
+  text("< 이전",
+    animalBackBtn.x + animalBackBtn.w / 2,
+    animalBackBtn.y + animalBackBtn.h / 2
+  );
+  pop();
 
-    // BACK 버튼
-    let backHover =
-      mouseX > animalBackBtn.x &&
-      mouseX < animalBackBtn.x + animalBackBtn.w &&
-      mouseY > animalBackBtn.y &&
-      mouseY < animalBackBtn.y + animalBackBtn.h;
+    // ===== SKIP 버튼 (진행 중 + 7초 지난 뒤에만) =====
+    // ===== SKIP 버튼 영역 =====
+if (animalCurrentStep <= 4) {
+  let canSkip = animalCanShowSkip();
+  let remainSec = animalSkipRemainingSec();
 
-    push();
-    rectMode(CORNER);
-    noStroke();
-    fill(backHover ? color(250,210,120) : color(230,190,140));
-    rect(animalBackBtn.x, animalBackBtn.y, btnW, btnH, 8);
+  push();
+  resetMatrix();
+  rectMode(CORNER);
+  stroke(0);
+  strokeWeight(1.5);
 
-    fill(0);
-    textSize(14);
-    textAlign(CENTER, CENTER);
-    text("< 이전", leftCenterX, centerY);
-    pop();
-  
-
-    animalDrawPhotoButton();
-
-    return;
+  if (canSkip) {
+    // ✅ 활성화된 SKIP
+    fill(hoveringSkip ? color(255, 230, 160) : color(245, 215, 140));
+  } else {
+    // ⏳ 비활성 + 카운트다운
+    fill(210);
   }
 
-  // ✅ 진행 중 단계(1~4)
-  let desc = "";
-  if (animalCurrentStep === 1)
-    desc = "1단계) 안아주기: 양팔을 크게 3초 간 벌리세요!";
-  else if (animalCurrentStep === 2)
-    desc = "2단계) 밥 주기: 오른손으로 당근과 그릇을 차례로 2초 간 터치하세요!";
-  else if (animalCurrentStep === 3)
-    desc = `3단계) 쓰다듬기: 오른손을 머리 위아래로 3회 움직이세요! (${animalWaveCount}/${ANIMAL_REQUIRED_WAVES})`;
-  else if (animalCurrentStep === 4)
-    desc = `4단계) 놀아주기: 양팔을 위아래로 3회 움직이세요! (${animalSwingCount}/3)`;
-
-  text(desc, width / 2, 30);
-
-  // 오른쪽 위 SKIP 버튼
-  let btnW = 80;
-  let btnH = 30;
-  let skipCenterX = width - btnW / 2 - 20;
-  let centerY = 30;
-
-  animalSkipBtn.x = skipCenterX - btnW / 2;
-  animalSkipBtn.y = centerY - btnH / 2;
-  animalSkipBtn.w = btnW;
-  animalSkipBtn.h = btnH;
-
-  // 왼쪽 BACK 버튼
-  let backCenterX = btnW / 2 + 20;
-
-  animalBackBtn.x = backCenterX - btnW / 2;
-  animalBackBtn.y = centerY - btnH / 2;
-  animalBackBtn.w = btnW;
-  animalBackBtn.h = btnH;
-
-  let hoveringSkip =
-    mouseX > animalSkipBtn.x &&
-    mouseX < animalSkipBtn.x + animalSkipBtn.w &&
-    mouseY > animalSkipBtn.y &&
-    mouseY < animalSkipBtn.y + animalSkipBtn.h;
-
-  let hoveringBack =
-    mouseX > animalBackBtn.x &&
-    mouseX < animalBackBtn.x + animalBackBtn.w &&
-    mouseY > animalBackBtn.y &&
-    mouseY < animalBackBtn.y + animalBackBtn.h;
-
-  // BACK
-  push();
-  rectMode(CORNER);
-  noStroke();
-  fill(hoveringBack ? color(250,210,120) : color(230,190,140));
-  rect(animalBackBtn.x, animalBackBtn.y, btnW, btnH, 8);
+  rect(
+    animalSkipBtn.x,
+    animalSkipBtn.y,
+    animalSkipBtn.w,
+    animalSkipBtn.h,
+    10
+  );
 
   fill(0);
-  textSize(14);
-  textAlign(CENTER, CENTER);
-  text("< 이전", backCenterX, centerY);
-  pop();
-
-  // SKIP
-  push();
-  rectMode(CORNER);
   noStroke();
-  fill(hoveringSkip ? color(250, 210, 120) : color(230, 190, 140));
-  rect(animalSkipBtn.x, animalSkipBtn.y, btnW, btnH, 8);
-
-  fill(0);
-  textSize(14);
   textAlign(CENTER, CENTER);
-  text("건너뛰기 >", skipCenterX, centerY);
+  textFont(fontTemplate);
+  textSize(24);
+
+  if (canSkip) {
+    text(
+      "건너뛰기 >",
+      animalSkipBtn.x + animalSkipBtn.w / 2,
+      animalSkipBtn.y + animalSkipBtn.h / 2
+    );
+  } else {
+    text(
+      `건너뛰기 (${remainSec}초)`,
+      animalSkipBtn.x + animalSkipBtn.w / 2,
+      animalSkipBtn.y + animalSkipBtn.h / 2
+    );
+  }
+
   pop();
+}
+
+  // ===== 완료 상태 셔터 버튼 =====
+  if (animalCurrentStep > 4) {
+    animalDrawPhotoButton();
+  }
 }
