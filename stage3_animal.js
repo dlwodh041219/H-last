@@ -61,9 +61,9 @@ let guideImagesReady = { 1:false, 2:false, 3:false, 4:false };
 function loadAnimalGuideImgs() {
   animalGuideImgs = {
     1: ['Hug.png'],
-    2: ['1 clear', 'Feed1.png', 'Feed2.png'],
-    3: ['tap1.png','tap2.png'],
-    4: ['Play1.png','Play2.png']
+    2: ['1 clear.png', 'Feed1.png', 'Feed2.png'],
+    3: ['2 clear.png', 'tap1.png','tap2.png'],
+    4: ['3 clear.png', 'Play1.png','Play2.png']
   };
 
   // 단계별 로드 상태 초기화
@@ -364,14 +364,14 @@ function drawAnimalGuide() {
   let img = group[animalGuideIndex];
   if (!img) return;
 
-  let w = width+110;
+  let w = width+230;
   let h = (img.height / img.width) * w;
 
 
   push();
   resetMatrix();
   imageMode(CENTER);
-  image(img, width/2, height/2+30, w, h);
+  image(img, width/2, height/2+80, w, h);
   pop();
 
   // 2.5초마다 다음 이미지로 자동 전환
