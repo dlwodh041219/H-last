@@ -1140,17 +1140,17 @@ function animalDrawUI() {
   animalBackBtn.w = 110;
   animalBackBtn.h = 52;
   animalBackBtn.x = margin;
-  animalBackBtn.y = margin;
+  animalBackBtn.y = margin + 9;
 
   animalSkipBtn.w = 180;
   animalSkipBtn.h = 52;
   animalSkipBtn.x = width - animalSkipBtn.w - margin;
-  animalSkipBtn.y = margin;
+  animalSkipBtn.y = margin + 9;
 
   // ===== 상단 BAR 크기 계산 =====
-  let topPad = animalBackBtn.y;     // 버튼 위 여백(현재 margin=40)
-  let bottomPad = topPad;           // 아래도 똑같이 맞춤
-  let barH = topPad + animalBackBtn.h + bottomPad;
+  let topPad = margin;     // 버튼 위 여백(현재 margin=40)
+  let bottomPad = margin;           // 아래도 똑같이 맞춤
+  let barH = topPad + animalBackBtn.h + bottomPad + 18;
   let barCenterY = barH / 2;
 
   // ===== 상단 BAR =====

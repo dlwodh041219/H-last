@@ -366,9 +366,53 @@ function drawCookingGame() {
     }
   }
 
+  // 디버깅용 키포인트 표시
+  if (cookCurrentPose && cookStage !== 3 && cookStage !== 4) {
+    cookDrawKeypoints();
+  }
+
+  let stageIndex = cookStage;
+  if (cookStage === 3) stageIndex = 3;
+  if (cookStage === 4) stageIndex = 3;
+  
+  let img = cookImgs[stageIndex];
+
+  // 🔥 단계별 그림 표시 (캔버스 우측 하단)
+  if (cookStage >= 0) {
+    // let img = cookImgs[cookStage];
+    if (img) {
+      // 단계별 이미지 크기 조정
+      let w = 600;
+      let h = (img.height / img.width) * w;
+      let x, y;
+
+      if(cookStage === 0){
+        x = width / 2 - w / 2;
+        y = height - h +50;
+      } else if (cookStage === 1){
+        x = width / 2 - w / 2;
+        y = height - h +20;
+      } else if (cookStage === 2){
+        x = width - w - 20;
+        y = height - h;
+      } else if (cookStage === 3){
+        x = width / 2 - w / 2;
+        y = height - h +20;
+      }
+
+      image(img, x,y,w,h);
+      
+    }
+
+  // ✅ 완료 상태면 셔터 버튼 그리기
+  if (cookStage === 4 && cookStageDone && cookCaptureMode === "NONE") {
+    cookDrawPhotoButton();
+    }
+  }
+  cookDrawFlashEffect();
+  cookDrawCountdownOverlay();
+
   drawCookGuide();
-
-
 }
 
 function drawCookGuide() {
@@ -1118,17 +1162,17 @@ function cookDrawStageInfo() {
   cookBackBtn.w = 110;
   cookBackBtn.h = 52;
   cookBackBtn.x = margin;
-  cookBackBtn.y = margin;
+  cookBackBtn.y = margin + 9;
 
   cookSkipBtn.w = 180;
   cookSkipBtn.h = 52;
   cookSkipBtn.x = width - cookSkipBtn.w - margin;
-  cookSkipBtn.y = margin;
+  cookSkipBtn.y = margin + 9;
 
   // ===== 상단 BAR 크기 계산 (위아래 여백 대칭) =====
-  let topPad = cookBackBtn.y;   // = margin
-  let bottomPad = topPad;
-  let barH = topPad + cookBackBtn.h + bottomPad;
+  let topPad = margin;   // = margin
+  let bottomPad = margin;
+  let barH = topPad + cookBackBtn.h + bottomPad + 18;
   let barCenterY = barH / 2;
 
   // ===== 상단 바 배경 =====

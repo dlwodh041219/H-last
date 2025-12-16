@@ -1020,17 +1020,17 @@ function drawHouseUI() {
   houseBackBtn.w = 110;
   houseBackBtn.h = 52;
   houseBackBtn.x = margin;
-  houseBackBtn.y = margin;
+  houseBackBtn.y = margin + 9;
 
   houseSkipBtn.w = 180;
   houseSkipBtn.h = 52;
   houseSkipBtn.x = width - houseSkipBtn.w - margin;
-  houseSkipBtn.y = margin;
+  houseSkipBtn.y = margin + 9;
 
   // ===== 상단 BAR 크기 계산 (위아래 여백 대칭) =====
-  let topPad = houseBackBtn.y;   // = margin
-  let bottomPad = topPad;
-  let barH = topPad + houseBackBtn.h + bottomPad;
+  let topPad = margin;   // = margin
+  let bottomPad = margin;
+  let barH = topPad + houseBackBtn.h + bottomPad + 18;
   let barCenterY = barH / 2;
 
   // ===== 상단 바 배경 =====
