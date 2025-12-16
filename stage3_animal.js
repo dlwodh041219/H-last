@@ -303,7 +303,7 @@ function animalForceNextStep() {
     return;
   }
 
-     onEnterHouseStep(houseStep);
+  onEnterHouseStep(animalCurrentStep);
 }
 
 
