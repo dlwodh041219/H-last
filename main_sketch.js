@@ -4,6 +4,10 @@ let img;
 let qrEnterTime = 0;
 let canvasEl = null;
 
+let lastMouseMoveTime = -999999; // 마지막 마우스 움직임 시각
+let CURSOR_HIDE_MS = 1000;       // 1초 동안 안 움직이면 숨김
+
+
 // phase: 1 = 시작 화면, 1.5 = 튜토리얼, 2 = 템플릿 선택, 3 = 이모지 커스텀, 4 = 각 게임 화면, 5 = QR
 let phase = 1;
 let selectedGame = null;
@@ -140,15 +144,29 @@ function draw() {
       else throw new Error("drawQRPage()가 없습니다. stage4_QR.js 로드 확인");
     }
 
-    // 공통 커서
-    push();
-    textAlign(CENTER, CENTER);
-    textFont("sans-serif");
-    textSize(80);
-    noStroke();
-    fill(0);
-    text("👆", mouseX, mouseY + 25);
-    pop();
+    // ✅ 커서 표시 조건
+    let isGamePlay =
+      (phase === 4) &&
+      (gameMode === "play") &&
+      (selectedGame === "animal" || selectedGame === "cooking" || selectedGame === "house");
+
+    let showCursor = true;
+
+    // ✅ animal/cook/house 플레이 화면에서만: 2초 무움직임이면 숨김
+    if (isGamePlay) {
+      showCursor = (millis() - lastMouseMoveTime) < CURSOR_HIDE_MS;
+    }
+
+    if (showCursor) {
+      push();
+      textAlign(CENTER, CENTER);
+      textFont("sans-serif");
+      textSize(80);
+      noStroke();
+      fill(0);
+      text("👆", mouseX, mouseY + 25);
+      pop();
+    }
 
     if (millis() - lastActivityTime > INACTIVITY_LIMIT) {
       console.log("⏰ 1분 30초 동안 활동 없음 → 초기 화면으로 리셋");
@@ -164,6 +182,7 @@ function draw() {
     console.error(e);
   }
 }
+
 
 // 1단계: 첫 페이지
 function drawStartPage() {
@@ -901,7 +920,14 @@ function markActivity() {
 
 function mouseMoved() {
   markActivity();
+  lastMouseMoveTime = millis();
 }
+
+function mouseDragged() {
+  markActivity();
+  lastMouseMoveTime = millis();
+}
+
 
 function goToQR() {
   if (typeof animalBodyPose !== "undefined" && animalBodyPose && animalBodyPose.detectStop) {
