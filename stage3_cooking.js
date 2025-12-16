@@ -281,20 +281,26 @@ function drawCookingGame() {
     // let img = cookImgs[cookStage];
     if (img) {
       // 단계별 이미지 크기 조정
-      let w = 150;
+      let w = 600;
       let h = (img.height / img.width) * w;
-      let x = width - w - 20;
-      let y = height - h - 20;
-
-      fill(255);
-      noStroke();
-      rect(x-10,y-10,w+20,h+20,12);
-      image(img, x,y,w,h);
+      let x, y;
       
-      fill(0);
-      textAlign(CENTER,CENTER)
-      textSize(12)
-      text('진행 상황',x+75,y)
+      if(cookStage === 0){
+        x = width / 2 - w / 2;
+        y = height - h +50;
+      } else if (cookStage === 1){
+        x = width / 2 - w / 2;
+        y = height - h +20;
+      } else if (cookStage === 2){
+        x = width - w - 20;
+        y = height - h;
+      } else if (cookStage === 3){
+        x = width / 2 - w / 2;
+        y = height - h +20;
+      }
+
+      image(img, x,y,w,h);
+ 
     }
 
   // ✅ 완료 상태면 셔터 버튼 그리기
@@ -1062,7 +1068,7 @@ function cookDrawStageInfo() {
   fill(255);
   textAlign(CENTER, CENTER);
   textFont(fontTemplate);
-  textSize(35);
+  textSize(40);
   text(desc, width / 2, barCenterY);
   pop();
 
