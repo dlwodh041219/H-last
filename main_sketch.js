@@ -1,10 +1,10 @@
-let fontStart;      
-let fontTemplate; 
+let fontStart;
+let fontTemplate;
 let img;
 let qrEnterTime = 0;
 let canvasEl = null;
 
-// phase: 1 = 시작 화면, 2 = 템플릿 선택, 3 = 이모지 커스텀, 4 = 각 게임 화면, 5 = QR
+// phase: 1 = 시작 화면, 1.5 = 튜토리얼, 2 = 템플릿 선택, 3 = 이모지 커스텀, 4 = 각 게임 화면, 5 = QR
 let phase = 1;
 let selectedGame = null;
 
@@ -18,7 +18,7 @@ let houseInited = false;
 // 템플릿 카드 기본 크기(더 키움)
 let CARD_W = 260;
 let CARD_H = 420;
-let CARD_Y = 540;   // 참고용, 실제 계산은 drawTemplatePage에서
+let CARD_Y = 540; // 참고용, 실제 계산은 drawTemplatePage에서
 
 let lastActivityTime = 0;
 let INACTIVITY_LIMIT = 90 * 1000; // 1분 30초
@@ -28,87 +28,153 @@ let templateCard1 = { cx: 0, cy: 0, w: 0, h: 0 };
 let templateCard2 = { cx: 0, cy: 0, w: 0, h: 0 };
 let templateCard3 = { cx: 0, cy: 0, w: 0, h: 0 };
 
+// ===== 튜토리얼 =====
+let tutorialImgs = [null, null, null, null, null, null];
+let tutorialStep = 0; // 0~5
+let TUTORIAL_TOTAL = 6;
+
+// ===== 빈화면 방지 =====
+let runtimeError = null;
+
+// 안전 호출(외부 모듈 함수 없으면 스킵)
+function safeCall(fnName) {
+  try {
+    if (typeof window[fnName] === "function") {
+      let args = Array.prototype.slice.call(arguments, 1);
+      return window[fnName].apply(null, args);
+    }
+  } catch (e) {
+    // 여기서 throw하면 스케치가 죽을 수 있으니 runtimeError에 저장만
+    runtimeError = e;
+    console.error(e);
+  }
+  return null;
+}
+
+// 런타임 에러 오버레이
+function drawErrorOverlay(err) {
+  background(20);
+  push();
+  fill(255);
+  textAlign(LEFT, TOP);
+  textFont("sans-serif");
+  textSize(22);
+  text("런타임 에러로 화면이 중단되었습니다.", 30, 30);
+
+  textSize(14);
+  let msg = (err && err.message) ? err.message : String(err);
+  text(msg, 30, 80, width - 60, height - 120);
+
+  textSize(13);
+  text("브라우저 콘솔(F12)에서 에러/404 확인해서 경로 또는 스크립트 로드를 점검하세요.", 30, height - 40);
+  pop();
+}
+
 function preload() {
-  fontStart    = loadFont("Recipekorea.ttf");
+  // 여기서 로딩 실패/외부함수 undefined로 스케치가 죽는 경우가 많아서 전부 안전 처리
+  fontStart = loadFont("Recipekorea.ttf");
   fontTemplate = loadFont("komi.otf");
-  img          = loadImage("pen.jpeg");
-  loadAnimalGuideImgs();
-  loadCookGuideImgs();
-  loadHouseGuideImgs();
+  img = loadImage("pen.jpeg");
+
+  // 튜토리얼 이미지 6장 (너가 말한 경로 그대로)
+  let i = 1;
+  while (i <= TUTORIAL_TOTAL) {
+    let idx = i - 1;
+    let path = "tutorial_image/tutorial" + i + ".png";
+    tutorialImgs[idx] = loadImage(path);
+    i++;
+  }
+
+  // 외부 로더는 있으면 호출, 없으면 스킵 (빈화면 방지)
+  safeCall("loadAnimalGuideImgs");
+  safeCall("loadCookGuideImgs");
+  safeCall("loadHouseGuideImgs");
 }
 
 function setup() {
   canvasEl = createCanvas(1440, 1080);
   noCursor();
 
-  setupAvatar();
+  safeCall("setupAvatar");
 
   lastActivityTime = millis();
 }
 
 function draw() {
-  if (phase === 1) {
-    drawStartPage();
-  } else if (phase === 2) {
-    drawTemplatePage();
-  } else if (phase === 3) {
-    drawAvatarScene();
-  } else if (phase === 4) {
-    if (gameMode === "intro") {
-      drawGamePage(); 
+  // 이미 에러가 나서 멈춘 상태면 오버레이만
+  if (runtimeError) {
+    drawErrorOverlay(runtimeError);
+    return;
+  }
 
-      // 일정 시간 후 실제 게임으로 전환
-      if (millis() - gameIntroStartTime > 2500) {
-        gameMode = "play";
-      }
-    } else if (gameMode === "play") {
-      if (selectedGame === "animal") {
-        if (!animalInited) {
-          initAnimalGame();      
-          animalInited = true;
-        }
-        drawAnimalGame();
-
-      } else if (selectedGame === "cooking") {
-        if (!cookingInited) {
-          initCookingGame();    
-          cookingInited = true;
-        }
-        drawCookingGame();
-
-      } else if (selectedGame === "house") {
-        if (!houseInited) {
-          initHouseGame();      
-          houseInited = true;
-        }
-        drawHouseGame();
-
-      } else {
+  try {
+    if (phase === 1) {
+      drawStartPage();
+    } else if (phase === 1.5) {
+      drawTutorialPage();
+    } else if (phase === 2) {
+      drawTemplatePage();
+    } else if (phase === 3) {
+      if (typeof drawAvatarScene === "function") drawAvatarScene();
+      else throw new Error("drawAvatarScene()가 없습니다. stage2_avatar.js 로드 확인");
+    } else if (phase === 4) {
+      if (gameMode === "intro") {
         drawGamePage();
+
+        // 일정 시간 후 실제 게임으로 전환
+        if (millis() - gameIntroStartTime > 2500) {
+          gameMode = "play";
+        }
+      } else if (gameMode === "play") {
+        if (selectedGame === "animal") {
+          if (!animalInited) {
+            safeCall("initAnimalGame");
+            animalInited = true;
+          }
+          safeCall("drawAnimalGame");
+        } else if (selectedGame === "cooking") {
+          if (!cookingInited) {
+            safeCall("initCookingGame");
+            cookingInited = true;
+          }
+          safeCall("drawCookingGame");
+        } else if (selectedGame === "house") {
+          if (!houseInited) {
+            safeCall("initHouseGame");
+            houseInited = true;
+          }
+          safeCall("drawHouseGame");
+        } else {
+          drawGamePage();
+        }
       }
+    } else if (phase === 5) {
+      if (typeof drawQRPage === "function") drawQRPage();
+      else throw new Error("drawQRPage()가 없습니다. stage4_QR.js 로드 확인");
     }
-  } else if (phase === 5) {
-    drawQRPage();
-  }
 
-  // 공통 커서
-  push();
-  textAlign(CENTER, CENTER);
-  textFont("sans-serif");
-  textSize(80);
-  noStroke();
-  fill(0);
-  text("👆", mouseX, mouseY+25);
-  pop();
+    // 공통 커서
+    push();
+    textAlign(CENTER, CENTER);
+    textFont("sans-serif");
+    textSize(80);
+    noStroke();
+    fill(0);
+    text("👆", mouseX, mouseY + 25);
+    pop();
 
-  if (millis() - lastActivityTime > INACTIVITY_LIMIT) {
-    console.log("⏰ 1분 30초 동안 활동 없음 → 초기 화면으로 리셋");
-    resetAllState();
-    lastActivityTime = millis();
-  }
+    if (millis() - lastActivityTime > INACTIVITY_LIMIT) {
+      console.log("⏰ 1분 30초 동안 활동 없음 → 초기 화면으로 리셋");
+      resetAllState();
+      lastActivityTime = millis();
+    }
 
-  if (phase !== 5 && typeof hideQRDiv === "function") {
-    hideQRDiv();
+    if (phase !== 5 && typeof hideQRDiv === "function") {
+      hideQRDiv();
+    }
+  } catch (e) {
+    runtimeError = e;
+    console.error(e);
   }
 }
 
@@ -241,10 +307,77 @@ function drawStartPage() {
   pop();
 
   push();
-  translate(width/2, 1000);
+  translate(width / 2, 1000);
   textSize(100);
   textFont("sans-serif");
   text("😎", 0, 0);
+  pop();
+}
+
+// ===== 튜토리얼 페이지(추가) =====
+function drawTutorialPage() {
+  // 이미지 전체 화면
+  if (tutorialImgs[tutorialStep]) {
+    image(tutorialImgs[tutorialStep], 0, 0, width, height);
+  } else {
+    // 혹시 로딩 문제여도 화면이 죽지 않게 fallback
+    background(215, 240, 249);
+    push();
+    textAlign(CENTER, CENTER);
+    textFont(fontTemplate);
+    fill(0);
+    noStroke();
+    textSize(28);
+    text("튜토리얼 이미지 로딩 중...\n(tutorial_image 폴더/파일명 확인)", width / 2, height / 2);
+    pop();
+  }
+
+  // 버튼
+  let margin = 40;
+  let btnW = 140;
+  let btnH = 60;
+
+  let prevX = margin;
+  let prevY = height - margin - btnH;
+
+  let nextX = width - margin - btnW;
+  let nextY = height - margin - btnH;
+
+  let overPrev =
+    mouseX > prevX && mouseX < prevX + btnW &&
+    mouseY > prevY && mouseY < prevY + btnH;
+
+  let overNext =
+    mouseX > nextX && mouseX < nextX + btnW &&
+    mouseY > nextY && mouseY < nextY + btnH;
+
+  push();
+  rectMode(CORNER);
+  stroke(0);
+  strokeWeight(1.5);
+
+  fill(overPrev ? color(250, 210, 120) : color(230, 190, 140));
+  rect(prevX, prevY, btnW, btnH, 10);
+
+  fill(0);
+  noStroke();
+  textFont(fontTemplate);
+  textAlign(CENTER, CENTER);
+  textSize(26);
+  text("< 이전", prevX + btnW / 2, prevY + btnH / 2);
+
+  stroke(0);
+  strokeWeight(1.5);
+  fill(overNext ? color(250, 210, 120) : color(230, 190, 140));
+  rect(nextX, nextY, btnW, btnH, 10);
+
+  fill(0);
+  noStroke();
+  textFont(fontTemplate);
+  textAlign(CENTER, CENTER);
+  textSize(26);
+  text("다음 >", nextX + btnW / 2, nextY + btnH / 2);
+
   pop();
 }
 
@@ -252,7 +385,7 @@ function drawStartPage() {
 function drawTemplatePage() {
   background(215, 240, 249);
 
-  const margin = 40;
+  let margin = 40;
 
   // 제목: 이모지 커스텀 페이지와 동일한 사이즈(40)
   push();
@@ -269,9 +402,9 @@ function drawTemplatePage() {
   // 카드 크기/위치 계산: 가로 가운데 정렬 + 간격
   let cardW = CARD_W;
   let cardH = CARD_H;
-  let yCenter = height / 2 + 20;    // 거의 세로 중앙
+  let yCenter = height / 2 + 20; // 거의 세로 중앙
 
-  let gap = 150;                    // 카드 사이 간격
+  let gap = 150; // 카드 사이 간격
   let totalWidth = cardW * 3 + gap * 2;
   let startX = (width - totalWidth) / 2 + cardW / 2;
 
@@ -332,7 +465,7 @@ function drawTemplatePage() {
   let backW = 110;
   let backH = 52;
   let backX = margin;
-  let backY = margin * 2.7;  // 이모지 페이지와 동일 위치
+  let backY = margin * 2.7; // 이모지 페이지와 동일 위치
 
   let hovering =
     mouseX > backX &&
@@ -373,16 +506,16 @@ function drawTemplateCard(
   w,
   h,
   topText,
-  icon,           // 문자열(이모지)
+  icon, // 문자열(이모지)
   bottomTitle,
   bottomDesc,
   hovered,
   topSizeOverride // 상단 설명 폰트 크기만 카드별로 조정 (옵션)
 ) {
   // 글자 크기 전부 업
-  let baseTopSize   = 24;  // 카드 안 윗쪽 설명
-  let baseTitleSize = 30;  // 카드 아래 제목
-  let baseDescSize  = 24;  // 카드 아래 설명
+  let baseTopSize = 24; // 카드 안 윗쪽 설명
+  let baseTitleSize = 30; // 카드 아래 제목
+  let baseDescSize = 24; // 카드 아래 설명
 
   let topSize = topSizeOverride || baseTopSize;
 
@@ -404,7 +537,7 @@ function drawTemplateCard(
   fill(0);
   noStroke();
   textSize(topSize);
-  text(topText, cx, cy - h / 2 + 45);   // 글자 키워서 조금 더 내려줌
+  text(topText, cx, cy - h / 2 + 45); // 글자 키워서 조금 더 내려줌
 
   // 사람 실루엣 (👤)
   let humanY = cy - 20;
@@ -415,7 +548,7 @@ function drawTemplateCard(
   text("👤", cx, humanY);
   pop();
 
-  // 아이콘 (게임별 이모지) 
+  // 아이콘 (게임별 이모지)
   let iconY = cy + 95;
   push();
   textAlign(CENTER, CENTER);
@@ -432,7 +565,7 @@ function drawTemplateCard(
   fill(0);
   text(bottomTitle, cx, cy + h / 2 + 30);
 
-  // 아래 설명 
+  // 아래 설명
   textStyle(NORMAL);
   textFont(fontTemplate);
   textSize(baseDescSize);
@@ -441,7 +574,6 @@ function drawTemplateCard(
 
   pop();
 }
-
 
 // 3단계: 각 게임 이름만 표시하는 임시 UI (phase 4 intro 용)
 function drawGamePage() {
@@ -464,19 +596,60 @@ function drawGamePage() {
 function mousePressed() {
   markActivity();
 
-  // 1단계: START 화면 → 템플릿 화면으로 이동
+  // 1단계: START 화면 → 튜토리얼로 이동
   if (phase === 1) {
     let btnLeft = 470;
     let btnRight = 970;
     let btnTop = 616;
     let btnBottom = 796;
     if (mouseX < btnRight && mouseX > btnLeft && mouseY < btnBottom && mouseY > btnTop) {
-      phase = 2;
+      tutorialStep = 0;
+      phase = 1.5;
     }
   }
+
+  // 1.5단계: 튜토리얼 페이지 이전/다음
+  else if (phase === 1.5) {
+    let margin = 40;
+    let btnW = 140;
+    let btnH = 60;
+
+    let prevX = margin;
+    let prevY = height - margin - btnH;
+
+    let nextX = width - margin - btnW;
+    let nextY = height - margin - btnH;
+
+    let overPrev =
+      mouseX > prevX && mouseX < prevX + btnW &&
+      mouseY > prevY && mouseY < prevY + btnH;
+
+    let overNext =
+      mouseX > nextX && mouseX < nextX + btnW &&
+      mouseY > nextY && mouseY < nextY + btnH;
+
+    if (overPrev) {
+      if (tutorialStep === 0) {
+        phase = 1; // 첫 장에서 이전 누르면 시작으로
+      } else {
+        tutorialStep--;
+      }
+      return;
+    }
+
+    if (overNext) {
+      if (tutorialStep === TUTORIAL_TOTAL - 1) {
+        phase = 2; // 마지막 장에서 다음 누르면 템플릿 선택으로
+      } else {
+        tutorialStep++;
+      }
+      return;
+    }
+  }
+
   // 2단계: 템플릿 선택 페이지 — 카드 클릭
   else if (phase === 2) {
-    const margin = 40;
+    let margin = 40;
 
     // ← 이전 버튼
     let backW = 110;
@@ -494,65 +667,70 @@ function mousePressed() {
       phase = 1;
       return;
     }
-    
+
     // 카드 클릭: 저장해 둔 templateCard1~3 사용
     if (isInsideCard(mouseX, mouseY, templateCard1.cx, templateCard1.cy, templateCard1.w, templateCard1.h)) {
       selectedGame = "animal";
       phase = 3;
-      scene = 1;                      // 바로 사람 이모지 커스텀 1단계
+      if (typeof scene !== "undefined") scene = 1;
       if (typeof humanEmojiStep !== "undefined") humanEmojiStep = 1;
     } else if (isInsideCard(mouseX, mouseY, templateCard2.cx, templateCard2.cy, templateCard2.w, templateCard2.h)) {
       selectedGame = "cooking";
       phase = 3;
-      scene = 1;
+      if (typeof scene !== "undefined") scene = 1;
       if (typeof humanEmojiStep !== "undefined") humanEmojiStep = 1;
     } else if (isInsideCard(mouseX, mouseY, templateCard3.cx, templateCard3.cy, templateCard3.w, templateCard3.h)) {
       selectedGame = "house";
       phase = 3;
-      scene = 1;
+      if (typeof scene !== "undefined") scene = 1;
       if (typeof humanEmojiStep !== "undefined") humanEmojiStep = 1;
     }
   }
+
   // 3단계: 이모지 선택
   else if (phase === 3) {
-    if (scene === 0) {
-      mousePressedAvatar();
-    } else if (scene === 1) {
-      mousePressedHumanEmoji();
-    } else if (scene === 2) {
-      mousePressedAnimalEmoji();
+    // 외부 함수가 없으면 죽지 않게 safeCall
+    if (typeof scene === "undefined") {
+      throw new Error("scene 변수가 없습니다. stage2_avatar.js 로드 확인");
     }
-  } else if (phase === 4 && gameMode === "play") {
-    if (selectedGame === "animal")       mousePressedAnimalGame();
-    else if (selectedGame === "cooking") mousePressedCookingGame();
-    else if (selectedGame === "house")   mousePressedHouseGame();
-  }  else if (phase === 5) {
+    if (scene === 0) safeCall("mousePressedAvatar");
+    else if (scene === 1) safeCall("mousePressedHumanEmoji");
+    else if (scene === 2) safeCall("mousePressedAnimalEmoji");
+  }
+
+  else if (phase === 4 && gameMode === "play") {
+    if (selectedGame === "animal") safeCall("mousePressedAnimalGame");
+    else if (selectedGame === "cooking") safeCall("mousePressedCookingGame");
+    else if (selectedGame === "house") safeCall("mousePressedHouseGame");
+  }
+
+  else if (phase === 5) {
     if (millis() - qrEnterTime < 3000) return;
 
-    const hit = (btn) =>
-      mouseX > btn.x && mouseX < btn.x + btn.w &&
-      mouseY > btn.y && mouseY < btn.y + btn.h;
+    let hit = function (btn) {
+      return mouseX > btn.x && mouseX < btn.x + btn.w && mouseY > btn.y && mouseY < btn.y + btn.h;
+    };
 
-    if (hit(qrHomeBtn)) {
+    if (typeof qrHomeBtn !== "undefined" && hit(qrHomeBtn)) {
       resetAllState();
       return;
     }
 
-    if (hit(qrTryBtn)) {
-      goToTemplateSelectKeepEmoji();
+    if (typeof qrTryBtn !== "undefined" && hit(qrTryBtn)) {
+      safeCall("goToTemplateSelectKeepEmoji");
       return;
     }
   }
 }
 
 function resetAllState() {
-  resetQRPageState();
-  
   if (typeof resetQRPageState === "function") resetQRPageState();
 
   phase = 1;
   selectedGame = null;
   gameMode = "intro";
+
+  tutorialStep = 0;
 
   animalInited = false;
   cookingInited = false;
@@ -595,7 +773,7 @@ function resetAllState() {
 
   // 이모지 관련
   if (typeof scene !== "undefined") {
-    scene = 1;          // 다시 들어오면 바로 사람 이모지 커스텀
+    scene = 1;
   }
   if (typeof humanEmojiStep !== "undefined") {
     humanEmojiStep = 1;
@@ -604,14 +782,17 @@ function resetAllState() {
     humanComposedImg = null;
   }
 
-  if (typeof selectedEyeNumber !== "undefined")  selectedEyeNumber = 0;
+  if (typeof selectedEyeNumber !== "undefined") selectedEyeNumber = 0;
   if (typeof selectedNoseNumber !== "undefined") selectedNoseNumber = 0;
-  if (typeof selectedMouthNum !== "undefined")   selectedMouthNum = 0;
-  if (typeof selectedBrowNum !== "undefined")    selectedBrowNum = 0;
+  if (typeof selectedMouthNum !== "undefined") selectedMouthNum = 0;
+  if (typeof selectedBrowNum !== "undefined") selectedBrowNum = 0;
 
-  if (typeof selectedHairNum !== "undefined")  selectedHairNum  = 0;
-  if (typeof selectedAccNum  !== "undefined")  selectedAccNum   = 0;
-  if (typeof selectedGlassNum  !== "undefined") selectedGlassNum  = 0;
+  if (typeof selectedHairNum !== "undefined") selectedHairNum = 0;
+  if (typeof selectedAccNum !== "undefined") selectedAccNum = 0;
+  if (typeof selectedGlassNum !== "undefined") selectedGlassNum = 0;
+
+  // 에러 상태도 초기화(다시 실행 가능하게)
+  runtimeError = null;
 }
 
 function backToAvatarFromGame() {
@@ -676,12 +857,12 @@ function backToAvatarFromGame() {
     houseStepDone = false;
   }
 
-  animalInited  = false;
+  animalInited = false;
   cookingInited = false;
-  houseInited   = false;
+  houseInited = false;
 
   gameMode = "intro";
-  phase    = 3;
+  phase = 3;
   if (typeof scene !== "undefined") scene = 1;
 }
 
@@ -733,11 +914,11 @@ function goToQR() {
     houseVideo.remove();
     houseVideo = null;
   }
-  
+
   qrEnterTime = millis();
 
   if (typeof resetQRPageState === "function") resetQRPageState();
 
   gameMode = "intro";
-  phase    = 5;
+  phase = 5;
 }
