@@ -5,6 +5,33 @@ let cookCurrentPose = null;
 
 let cookImgs = [];
 
+// ===== 요리 가이드 이미지 =====
+let cookGuideImgs = {
+  0: [], // 1단계: 썰기
+  1: [], // 2단계: 넣기
+  2: [], // 3단계: 볶기
+  3: []  // 4단계: 간보기
+};
+
+let cookGuideImagesReady = {
+  0: false,
+  1: false,
+  2: false,
+  3: false
+};
+
+let cookGuideLoaded = false;
+let prevCookStage = -1;
+
+
+// 가이드 표시 상태
+let showCookGuide = false;
+let cookGuideIndex = 0;
+let cookGuideLastChange = 0;
+let COOK_GUIDE_INTERVAL = 1200; // ms
+
+
+
 // 기준선
 let cookHeadY = null;
 let cookChestX = null;
@@ -85,6 +112,43 @@ let cookCountdownStart = 0;
 let COOK_COUNTDOWN_MS = 3000; // 3초
 
 
+function loadCookGuideImgs() {
+  let guidePaths = {
+    0: ["Hammer1(f).png", "Hammer2(f).png"],
+    1: ["Play1(f).png", "Play2(f).png"],
+    2: ["sayhi1.png", "sayhi2.png"],
+    3: ["taste(f).png"]
+  };
+
+  let steps = Object.keys(guidePaths);
+  let readySteps = 0;
+
+  steps.forEach((step) => {
+    let paths = guidePaths[step];
+    let loadedCount = 0;
+
+    cookGuideImgs[step] = [];
+
+    paths.forEach((p, i) => {
+      loadImage(p, (img) => {
+        cookGuideImgs[step][i] = img;
+        loadedCount++;
+
+        if (loadedCount === paths.length) {
+          cookGuideImagesReady[step] = true;
+          readySteps++;
+
+          if (readySteps === steps.length) {
+            cookGuideLoaded = true;
+            console.log("🍳 cook guide images loaded");
+          }
+        }
+      });
+    });
+  });
+}
+
+
 function initCookingGame() {
   // ★ 카메라: stage2_avatar.js 에서 쓰는 전역 video 재사용
   if (!video) {
@@ -114,8 +178,29 @@ function initCookingGame() {
   cookImgs[3] = loadImage("cook4.png");
 
   cookStepStartTime = millis();
+  loadCookGuideImgs();
+
+showCookGuide = false;
+cookGuideIndex = 0;
+cookGuideLastChange = 0;
+onEnterCookStage(0);
+
+  prevCookStage = -1;
+  showCookGuide = false;
+  cookGuideIndex = 0;
+  cookGuideLastChange = 0;
 
 }
+
+function onEnterCookStage(stage) {
+  if (!cookGuideLoaded) return;
+  if (!cookGuideImagesReady[stage]) return;
+
+  showCookGuide = true;
+  cookGuideIndex = 0;
+  cookGuideLastChange = millis();
+}
+
 
 function cookResetState() {
   cookPoses = [];
@@ -232,6 +317,21 @@ function drawCookingGame() {
   background(0);
   drawFaceFullScreen();
 
+   // ===== cookStage 변경 감지 (가이드 전용) =====
+  if (cookStage !== prevCookStage) {
+    prevCookStage = cookStage;
+
+    // 가이드 상태 리셋
+    showCookGuide = false;
+    cookGuideIndex = 0;
+    cookGuideLastChange = 0;
+
+    // 가이드 시작 (완료 stage 제외)
+    if (cookStage >= 0 && cookStage <= 3) {
+      onEnterCookStage(cookStage);
+    }
+  }
+
   // ✅ 완료 상태 + 프리뷰 전이면 "UI 없는 화면"을 먼저 저장해둠 (중요!)
   if (cookStage === 4 && cookStageDone && cookCaptureMode === "NONE") {
     cookFrameNoUI = get(0, 0, width, height);
@@ -254,7 +354,7 @@ function drawCookingGame() {
   if (cookStage === 3) {
     cookUpdateTaste();
   }
-
+  
   // 1~3단계: BodyPose
   if (!cookStageDone && cookCurrentPose) {
     if (cookStage === 0) {
@@ -266,46 +366,44 @@ function drawCookingGame() {
     }
   }
 
-  // 디버깅용 키포인트 표시
-  if (cookCurrentPose && cookStage !== 3 && cookStage !== 4) {
-    cookDrawKeypoints();
-  }
+  drawCookGuide();
 
-  let stageIndex = cookStage;
-  if (cookStage === 3) stageIndex = 3;
-  if (cookStage === 4) stageIndex = 3;
-  let img = cookImgs[stageIndex];
 
-  // 🔥 단계별 그림 표시 (캔버스 우측 하단)
-  if (cookStage >= 0) {
-    // let img = cookImgs[cookStage];
-    if (img) {
-      // 단계별 이미지 크기 조정
-      let w = 150;
-      let h = (img.height / img.width) * w;
-      let x = width - w - 20;
-      let y = height - h - 20;
-
-      fill(255);
-      noStroke();
-      rect(x-10,y-10,w+20,h+20,12);
-      image(img, x,y,w,h);
-      
-      fill(0);
-      textAlign(CENTER,CENTER)
-      textSize(12)
-      text('진행 상황',x+75,y)
-    }
-
-  // ✅ 완료 상태면 셔터 버튼 그리기
-  if (cookStage === 4 && cookStageDone && cookCaptureMode === "NONE") {
-    cookDrawPhotoButton();
-  }
-
-  cookDrawFlashEffect();
-  cookDrawCountdownOverlay();
-  }
 }
+
+function drawCookGuide() {
+  if (!showCookGuide) return;
+  if (!cookGuideLoaded) return;
+  if (!cookGuideImagesReady[cookStage]) return;
+
+  let imgs = cookGuideImgs[cookStage];
+  if (!imgs || imgs.length === 0) return;
+
+  // 자동 전환
+  if (millis() - cookGuideLastChange > COOK_GUIDE_INTERVAL) {
+    cookGuideIndex++;
+    cookGuideLastChange = millis();
+
+    if (cookGuideIndex >= imgs.length) {
+      cookGuideIndex = imgs.length - 1; // 마지막 이미지 유지
+      showCookGuide = false;
+    }
+  }
+
+  let img = imgs[cookGuideIndex];
+  if (!img) return;
+
+  push();
+  resetMatrix();
+  imageMode(CENTER);
+
+  let w = width +230
+  let h = (img.height / img.width) * w;
+
+  image(img, width / 2, height / 2+80, w, h);
+  pop();
+}
+
 
 // 1단계: 재료 썰기
 function cookUpdateChop() {
@@ -695,6 +793,10 @@ function resetCookingStageChop() {
 
   cookStageDone = false;
   cookDetectedText = "";
+
+  showCookGuide = false;
+  cookGuideIndex = 0;
+
 }
 
 // 2단계: 재료 넣기 (cookStage === 1)
@@ -707,6 +809,10 @@ function resetCookingStagePour() {
 
   cookStageDone = false;
   cookDetectedText = "";
+
+  showCookGuide = false;
+  cookGuideIndex = 0;
+
 }
 
 // 3단계: 볶기 (cookStage === 2)
@@ -718,6 +824,10 @@ function resetCookingStageFry() {
 
   cookStageDone = false;
   cookDetectedText = "";
+
+  showCookGuide = false;
+  cookGuideIndex = 0;
+
 }
 
 // 4단계: 간보기 (cookStage === 3)
@@ -729,6 +839,10 @@ function resetCookingStageTaste() {
 
   cookStageDone = false;
   cookDetectedText = "";
+
+  showCookGuide = false;
+  cookGuideIndex = 0;
+
 }
 
 function cookDrawChestGuideLine() {
