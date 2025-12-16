@@ -65,7 +65,7 @@ function loadAnimalGuideImgs() {
   animalGuideImgs = {
     1: ['Hug(f).png'],
     2: ['1 clear.png', 'Feed1.png', 'Feed2.png'],
-    3: ['2 clear.png', 'tap1.png','tap2.png'],
+    3: ['2 clear.png', 'sayhi1.png','sayhi2.png'],
     4: ['3 clear.png', 'Play1(f).png','Play2(f).png']
   };
 
