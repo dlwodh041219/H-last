@@ -33,6 +33,7 @@ function preload() {
   fontTemplate = loadFont("komi.otf");
   img          = loadImage("pen.jpeg");
   loadAnimalGuideImgs();
+  loadCookGuideImgs();
 }
 
 function setup() {

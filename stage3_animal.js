@@ -64,9 +64,9 @@ let guideImagesReady = { 1:false, 2:false, 3:false, 4:false };
 function loadAnimalGuideImgs() {
   animalGuideImgs = {
     1: ['Hug(f).png'],
-    2: ['1 clear.png', 'Feed1.png', 'Feed2.png'],
-    3: ['2 clear.png', 'tap1.png','tap2.png'],
-    4: ['3 clear.png', 'Play1(f).png','Play2(f).png']
+    2: ['clear1(f).png', 'Feed1.png', 'Feed2.png'],
+    3: ['clear2(f).png', 'tap1(ff).png','tap2(ff).png'],
+    4: ['clear3(f).png', 'Play1(f).png','Play2(f).png']
   };
 
   // 단계별 로드 상태 초기화
@@ -161,8 +161,8 @@ function initAnimalGame() {
   animalHeadY = null;
   animalChestY = null;
 
-  animalFood = { x: 500, y: 100, r: 50, visible: false }; // 1단계 끝나고 보이게
-  animalBowl = { x: 320, y: 400, r: 60, visible: false };
+  animalFood = { x: 1000, y: 300, r: 50, visible: false }; // 1단계 끝나고 보이게
+  animalBowl = { x: 700, y: 950, r: 60, visible: false };
 
   animalWaveState = "DOWN";
   animalWaveCount = 0;
@@ -499,7 +499,7 @@ function animalDetectOpenArms() {
 // ================== 2단계: 밥 주기 ==================
 function animalDrawObjects() {
   push();
-  textSize(100);
+  textSize(150);
   textFont("sans-serif");
   if (animalFood.visible) text("🥕", animalFood.x, animalFood.y);
   if (animalBowl.visible) text("🥣", animalBowl.x, animalBowl.y);
