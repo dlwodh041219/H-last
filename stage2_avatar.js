@@ -1253,7 +1253,7 @@
 // 기존 전역 상태 + FaceMesh 추가
 //------------------------------------------------------
 
-let scene = 0;         // 0: 아바타 선택, 1: 사람 이모지 선택, 2: 동물 이모지 선택
+let scene = 1;         // ★ 1: 사람 이모지 선택부터 시작 (0: 아바타 선택 화면은 사용 안 함)
 let humanCenter;
 let animalCenter;
 let avatarRadius = 110;
@@ -1328,11 +1328,9 @@ let glassBtn4 = { x: 0, y: 0, w: 70, h: 70 };
 let humanEmojiAssetsLoaded = false;
 
 let margin = 60;
-// let intervalX;
-// let intervalY;
 
 //------------------------------------------------------
-// FaceMesh + 카메라 전역 (새로 추가된 부분)
+// FaceMesh + 카메라 전역
 //------------------------------------------------------
 
 let faceMesh;
@@ -1348,11 +1346,8 @@ let faceOptions = {
 };
 let faceMeshReady = false;
 
-// fontTemplate, phase, gameMode, gameIntroStartTime 등은
-// main 스케치에서 전역으로 이미 있다고 가정
-
 //------------------------------------------------------
-// 아바타 초기 위치
+// 아바타 초기 위치 (지금은 사용 안 하지만 남겨둠)
 //------------------------------------------------------
 function setupAvatar() {
   humanCenter  = createVector(width / 2 - 140, height / 2 + 10);
@@ -1362,9 +1357,8 @@ function setupAvatar() {
 function drawAvatarScene() {
   background(214, 240, 249);
 
-  if (scene === 0) {
-    drawAvatarSelect();
-  } else if (scene === 1) {
+  // ★ scene 0(아바타 선택 화면)은 더 이상 사용하지 않음
+  if (scene === 1) {
     drawHumanEmojiPage();
   } else if (scene === 2) {
     drawAnimalEmojiPage();
@@ -1372,9 +1366,9 @@ function drawAvatarScene() {
 }
 
 //------------------------------------------------------
-// scene 0: 아바타 선택 화면
+// (참고용) scene 0: 아바타 선택 화면
+// 지금은 호출되지 않는다.
 //------------------------------------------------------
-
 function drawAvatarSelect() {
   push();
   fill(0);
@@ -1515,16 +1509,16 @@ function drawHumanEmojiPage() {
   loadHumanEmojiAssets();
   background(215, 240, 249);
 
-  // ★ FaceMesh 초기화 (카메라 + 모델 로딩)
+  // FaceMesh 초기화 (카메라 + 모델 로딩)
   initFaceMesh();
 
   let margin = 40;
 
-  // 🔹 공통 Back 버튼 위치 설정
+  // 공통 Back 버튼 위치 설정
   humanBackBtn.w = 110;
   humanBackBtn.h = 52;
   humanBackBtn.x = margin;
-  humanBackBtn.y = margin*2.7;
+  humanBackBtn.y = margin * 2.7;
 
   // 상단 바: 제목 + '다음 단계 >' 버튼
   push();
@@ -1560,7 +1554,7 @@ function drawHumanEmojiPage() {
   humanNextStepBtn.w = 180;
   humanNextStepBtn.h = 52;
   humanNextStepBtn.x = width - humanNextStepBtn.w - margin;
-  humanNextStepBtn.y = margin*2.7;
+  humanNextStepBtn.y = margin * 2.7;
 
   if (humanEmojiStep === 1) {
     // 1단계: "다음 단계 >" (모든 부위 선택되어야 활성)
@@ -1641,7 +1635,7 @@ function drawHumanEmojiStep1(margin) {
   let intervalX = (width / 2) / 4;
   let intervalY = (height - 2 * margin) / 4;
 
-  humanFaceRegion.x = margin*2;
+  humanFaceRegion.x = margin * 2;
   humanFaceRegion.y = margin * 2 + 120;
   humanFaceRegion.w = width / 2 - 4 * margin;
   humanFaceRegion.h = height - margin * 3 - 120;
@@ -1653,7 +1647,7 @@ function drawHumanEmojiStep1(margin) {
   rect(humanFaceRegion.x, humanFaceRegion.y, humanFaceRegion.w, humanFaceRegion.h);
   pop();
 
-  // ★ 카메라 + FaceMesh 이모지 (1단계에서도 얼굴 따라다님)
+  // 카메라 + FaceMesh 이모지
   if (video) {
     drawFacePanelWithCamera(
       humanFaceRegion.x,
@@ -1711,25 +1705,24 @@ function drawHumanEmojiStep1(margin) {
 
   // 오른쪽 파츠 라벨
   push();
-
   textFont(fontTemplate)
   textSize(25);
   fill(0);
   noStroke();
-  text('눈썹', width/2, margin*6)
-  text('눈',width/2, margin*11)
-  text('코',width/2, margin*16.5)
-  text('입',width/2, margin*22)
+  text('눈썹', width/2, margin*6);
+  text('눈',  width/2, margin*11);
+  text('코',  width/2, margin*16.5);
+  text('입', width/2, margin*22);
   pop();
   
   // 기본 얼굴들 반복 출력
   for (let i = 0; i <= width - margin; i += intervalX) {
-    for (let j = 0; j <= height - margin; j += intervalY-35) {
-      image(faceImg, width/2 + i, 6*margin + j,190,145);
+    for (let j = 0; j <= height - margin; j += intervalY - 35) {
+      image(faceImg, width/2 + i, 6*margin + j, 190, 145);
     }
   }
 
- // 눈썹 버튼 위치
+  // 눈썹 버튼 위치
   browBtn1.x = width/2 + 50;
   browBtn1.y = 2*margin + 170;
 
@@ -1742,7 +1735,7 @@ function drawHumanEmojiStep1(margin) {
   browBtn4.x = width/2 + intervalX*3 + 50;
   browBtn4.y = 2*margin + 170;
 
-  // 눈 버튼 위치 설정
+  // 눈 버튼 위치
   eyeBtn1.x = width/2 + 50;
   eyeBtn1.y = 2*margin + intervalY + 145;
 
@@ -1756,8 +1749,8 @@ function drawHumanEmojiStep1(margin) {
   eyeBtn4.y = 2*margin + intervalY + 145;
   
   // 코 버튼 위치
-  noseBtn1.x = width/2+50;
-  noseBtn1.y = 2*margin + intervalY*2 +135;
+  noseBtn1.x = width/2 + 50;
+  noseBtn1.y = 2*margin + intervalY*2 + 135;
 
   noseBtn2.x = width/2 + intervalX + 50;
   noseBtn2.y = 2*margin + intervalY*2 + 135;
@@ -1770,7 +1763,7 @@ function drawHumanEmojiStep1(margin) {
   
   // 입 버튼 위치
   mouthBtn1.x = width/2 + 50;
-  mouthBtn1.y = 2*margin + intervalY*3 +135;
+  mouthBtn1.y = 2*margin + intervalY*3 + 135;
 
   mouthBtn2.x = width/2 + intervalX + 50;
   mouthBtn2.y = 2*margin + intervalY*3 + 130;
@@ -1812,7 +1805,7 @@ function isHumanStep1Complete() {
 }
 
 function drawHumanEmojiStep2(margin) {
-  humanFaceRegion.x = margin*2;
+  humanFaceRegion.x = margin * 2;
   humanFaceRegion.y = margin * 2 + 120;
   humanFaceRegion.w = width / 2 - 4 * margin;
   humanFaceRegion.h = height - margin * 3 - 120;
@@ -1824,7 +1817,7 @@ function drawHumanEmojiStep2(margin) {
   rect(humanFaceRegion.x, humanFaceRegion.y, humanFaceRegion.w, humanFaceRegion.h);
   pop();
 
-  // ★ 2단계에서도 FaceMesh 기반 이모지 + 헤어/악세사리 따라다니도록
+  // FaceMesh 기반 이모지
   if (video) {
     drawFacePanelWithCamera(
       humanFaceRegion.x,
@@ -1880,25 +1873,26 @@ function drawHumanEmojiStep2(margin) {
 
     pop();
   }
+
   let intervalY = (height - 2 * margin) / 4;
   let intervalX = (width / 2) / 4;
 
-  // 오른쪽 파트: 버튼 배치
+  // 오른쪽 파트: 버튼 라벨
   push();
   textFont(fontTemplate)
   textSize(25);
   textAlign(CENTER, CENTER);
   noStroke();
   fill(0);
-  text('헤어', width/2,margin*6);
-  text('소품',width/2, margin*16.5);
-  text('안경',width/2, margin*22);
+  text('헤어', width/2, margin*6);
+  text('소품', width/2, margin*16.5);
+  text('안경', width/2, margin*22);
   pop();
 
   // 기본 얼굴들 반복 출력 (배경 장식용)
   for (let i = 0; i <= width - margin; i += intervalX) {
-    for (let j = 0; j <= height - margin; j += intervalY-35) {
-      image(faceImg, width / 2 + i, 6* margin + j, 180, 135);
+    for (let j = 0; j <= height - margin; j += intervalY - 35) {
+      image(faceImg, width / 2 + i, 6 * margin + j, 180, 135);
     }
   }
 
@@ -1906,12 +1900,11 @@ function drawHumanEmojiStep2(margin) {
   let intervalX2 = (width / 2) / 4;
   let intervalY2 = (height - 2 * margin) / 4;
 
-  // 헤어 버튼 위치 설정
-  hairBtn1.x = width/2+55;
-  hairBtn1.y = 2*margin+190;
+  hairBtn1.x = width/2 + 55;
+  hairBtn1.y = 2*margin + 190;
 
   hairBtn2.x = width/2 + intervalX2 + 55;
-  hairBtn2.y = 2*margin+190;
+  hairBtn2.y = 2*margin + 190;
   
   hairBtn3.x = width/2 + intervalX2*2 + 55;
   hairBtn3.y = 2*margin + 190;
@@ -1919,43 +1912,43 @@ function drawHumanEmojiStep2(margin) {
   hairBtn4.x = width/2 + intervalX2*3 + 55;
   hairBtn4.y = 2*margin + 190;
   
-  hairBtn5.x = width/2+55.5;
-  hairBtn5.y = 2*margin+ intervalY2 + 156.5;
+  hairBtn5.x = width/2 + 55.5;
+  hairBtn5.y = 2*margin + intervalY2 + 156.5;
 
   hairBtn6.x = width/2 + intervalX2 + 55;
-  hairBtn6.y = 2*margin+intervalY2 + 152;
+  hairBtn6.y = 2*margin + intervalY2 + 152;
   
   hairBtn7.x = width/2 + intervalX2*2 + 55.5;
-  hairBtn7.y = 2*margin +intervalY2 + 156.5;
+  hairBtn7.y = 2*margin + intervalY2 + 156.5;
   
-  hairBtn8.x = width/2 + intervalX2*3 +55.5;
-  hairBtn8.y = 2*margin +intervalY2 + 156.5;
-  
+  hairBtn8.x = width/2 + intervalX2*3 + 55.5;
+  hairBtn8.y = 2*margin + intervalY2 + 156.5;
+
   // 악세사리 버튼
-  accBtn1.x = width/2+55;
-  accBtn1.y = 2*margin+ intervalY2*2 + 120;
+  accBtn1.x = width/2 + 55;
+  accBtn1.y = 2*margin + intervalY2*2 + 120;
 
   accBtn2.x = width/2 + intervalX2 + 55;
-  accBtn2.y = 2*margin+ intervalY2*2 + 122;
+  accBtn2.y = 2*margin + intervalY2*2 + 122;
   
   accBtn3.x = width/2 + intervalX2*2 + 55;
-  accBtn3.y = 2*margin + intervalY2*2 +122;
+  accBtn3.y = 2*margin + intervalY2*2 + 122;
   
   accBtn4.x = width/2 + intervalX2*3 + 55;
   accBtn4.y = 2*margin + intervalY2*2 + 122;
   
-  // glass
-  glassBtn1.x = width/2+55;
-  glassBtn1.y = 2*margin+ intervalY2*3 + 88;
+  // 안경 버튼
+  glassBtn1.x = width/2 + 55;
+  glassBtn1.y = 2*margin + intervalY2*3 + 88;
 
   glassBtn2.x = width/2 + intervalX2 + 55;
-  glassBtn2.y = 2*margin+ intervalY2*3 + 88;
+  glassBtn2.y = 2*margin + intervalY2*3 + 88;
   
   glassBtn3.x = width/2 + intervalX2*2 + 55;
-  glassBtn3.y = 2*margin + intervalY2*3 +88;
+  glassBtn3.y = 2*margin + intervalY2*3 + 88;
   
   glassBtn4.x = width/2 + intervalX2*3 + 55;
-  glassBtn4.y = 2*margin + intervalY2*3 +88;
+  glassBtn4.y = 2*margin + intervalY2*3 + 88;
 
   // 버튼 이미지 그리기
   drawButton(hairImg1, hairBtn1, 2.8);
@@ -1988,7 +1981,7 @@ function drawButton(img, btn, baseScale = 1, isSelected = false) {
   let x = btn.x - (w - btn.w)/2;
   let y = btn.y - (h - btn.h)/2;
 
-  image(img,x,y,w,h)
+  image(img, x, y, w, h);
 }
 
 // 마우스 버튼 위에 있는지 체크
@@ -2055,35 +2048,15 @@ function drawAnimalEmojiPage() {
 }
 
 //------------------------------------------------------
-// 마우스 입력 (아바타/사람/동물)
+// 마우스 입력 분배
 //------------------------------------------------------
 function mousePressedAvatar() {
-  if (scene === 0) {
-    // 🔹 먼저 BACK 버튼 처리 (phase 2로)
-    let backW = 80;
-    let backH = 34;
-    let backX = 40;
-    let backY = 23;
-
-    let overBack =
-      mouseX > backX - backW / 2 &&
-      mouseX < backX + backW / 2 &&
-      mouseY > backY - backH / 2 &&
-      mouseY < backY + backH / 2;
-
-    if (overBack) {
-      phase = 2; // 템플릿 선택 화면으로
-      return;
-    }
-
-    // 아바타 선택
-    if (dist(mouseX, mouseY, humanCenter.x, humanCenter.y) < avatarRadius) {
-      scene = 1; // 사람 이모지 선택 화면으로
-    } else if (dist(mouseX, mouseY, animalCenter.x, animalCenter.y) < avatarRadius) {
-      scene = 2; // 동물 이모지 선택 화면으로
-    }
-  } else {
-    // 나중에 각 선택 화면에서 클릭 로직 추가
+  // ★ scene 0은 더 이상 사용하지 않으므로,
+  // 현재 scene에 따라 각 이모지 화면의 클릭 함수만 호출
+  if (scene === 1) {
+    mousePressedHumanEmoji();
+  } else if (scene === 2) {
+    mousePressedAnimalEmoji();
   }
 }
 
@@ -2091,8 +2064,8 @@ function mousePressedHumanEmoji() {
   // 공통: ← 이전 버튼
   if (isMouseOver(humanBackBtn)) {
     if (humanEmojiStep === 1) {
-      // 1단계에서 ← 누르면 아바타 선택 화면으로
-      scene = 0;
+      // 1단계에서 ← 누르면 템플릿 선택 화면으로
+      phase = 2;           // main_sketch.js에서 템플릿 페이지로 돌아가도록 사용하던 값
     } else if (humanEmojiStep === 2) {
       // 2단계에서 ← 누르면 1단계로만 돌아감 (선택 값 유지)
       humanEmojiStep = 1;
@@ -2213,7 +2186,6 @@ function mousePressedHumanEmoji() {
   }
 }
 
-
 function mousePressedAnimalEmoji() {
   // "게임 시작" 버튼 클릭 → stage4로 넘어가기 (기존 로직 유지)
   if (isMouseOver(animalNextBtn)) {
@@ -2224,7 +2196,7 @@ function mousePressedAnimalEmoji() {
 }
 
 //------------------------------------------------------
-// FaceMesh 초기화 + 그리기 (새로 추가된 핵심 부분)
+// FaceMesh 초기화 + 그리기
 //------------------------------------------------------
 
 // 카메라 + FaceMesh 모델 초기화
@@ -2249,9 +2221,6 @@ function gotFaces(results) {
 
 // 사람 얼굴 패널 안에 카메라 + 이모지 얼굴 그리기
 function drawFacePanelWithCamera(panelX, panelY, panelW, panelH) {
-  // if (!video || !faceMeshReady) return;
-
-  // if (video.width === 0 || video.height === 0) return;
   if(!video || video.width === 0 || !faceMeshReady){
 
     // gray background
@@ -2303,21 +2272,18 @@ function drawFacePanelWithCamera(panelX, panelY, panelW, panelH) {
   pop();
 }
 
-// stage2_avatar.js 안, drawFacePanelWithCamera 옆에 추가
+// 전체 화면에 카메라 + 이모지 얼굴
 function drawFaceFullScreen() {
-  push();
   if (!video || !faceMeshReady) return;
   if (video.width === 0 || video.height === 0) return;
 
   push();
-  // 거울처럼 좌우 반전
   translate(width, 0);
   scale(-1, 1);
 
   image(video, 0, 0, width, height);
-  drawEmojiFace();   // ★ 여기서 선택된 눈/코/입/헤어/악세/안경까지 모두 얼굴에 붙음
+  drawEmojiFace();
 
-  pop();
   pop();
 }
 
@@ -2413,19 +2379,15 @@ function drawEmojiFace() {
     MOUTH_H = PART_H * 0.6;
   }
 
-  // ★ 전체 이모지가 너무 위에 붙어 있으면 이 값을 줄이거나 음수로
-  //   (기존 18이었다면 ↓ 정도로 조정해봐)
+  // 전체 이모지 위치
   let GLOBAL_SHIFT_Y = 8;
-
-  // ★ 헤어가 특히 위에 있으면 이 값도 조금 올려준다 (위로 +, 아래로 -)
-  //   기존 -10 이었다면 -2 ~ 0 정도가 무난
   let HAIR_OFFSET_Y = -5;
 
   let ACC_W = 200;
   let ACC_H = 200;
   let ACC_OFFSET_Y = 0;
 
-  let GLASS_OFFSET_Y = 1; // 기존 5였다면 살짝 더 아래
+  let GLASS_OFFSET_Y = 1;
 
   noStroke();
 
@@ -2500,7 +2462,7 @@ function drawEmojiFace() {
     pop();
   }
 
-  // ★ 헤어 (이 오프셋이 캠 화면에서 위/아래 위치를 결정)
+  // 헤어
   if (selectedHairNum === 1 && hairImg1)      image(hairImg1, 0, HAIR_OFFSET_Y, 202, 200);
   else if (selectedHairNum === 2 && hairImg2) image(hairImg2, 0.5, HAIR_OFFSET_Y, 202, 200);
   else if (selectedHairNum === 3 && hairImg3) image(hairImg3, 0, HAIR_OFFSET_Y, 200, 200);
@@ -2533,7 +2495,7 @@ function drawEmojiFace() {
 }
 
 //------------------------------------------------------
-// 얼굴 캡쳐 (기존 로직 그대로 유지 - 카메라 없을 때용)
+// 얼굴 캡쳐 (카메라 없을 때용)
 //------------------------------------------------------
 function captureHumanEmoji() {
   // 1단계에서 얼굴을 그리던 위치/크기 기준으로 캡쳐

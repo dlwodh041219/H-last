@@ -4,7 +4,7 @@ let img;
 let qrEnterTime = 0;
 let canvasEl = null;
 
-// phase: 1 = 시작 화면, 2 = 템플릿 선택, 3 = 이모지 커스텀, 4 = 각 게임 화면
+// phase: 1 = 시작 화면, 2 = 템플릿 선택, 3 = 이모지 커스텀, 4 = 각 게임 화면, 5 = QR
 let phase = 1;
 let selectedGame = null;
 
@@ -15,13 +15,18 @@ let animalInited = false;
 let cookingInited = false;
 let houseInited = false;
 
-let CARD_W = 170;
-let CARD_H = 300;
-let CARD_Y = 235;
+// 템플릿 카드 기본 크기(더 키움)
+let CARD_W = 260;
+let CARD_H = 420;
+let CARD_Y = 540;   // 참고용, 실제 계산은 drawTemplatePage에서
 
 let lastActivityTime = 0;
 let INACTIVITY_LIMIT = 90 * 1000; // 1분 30초
 
+// 템플릿 카드 위치 (draw / mousePressed 같이 쓰려고 전역에 저장)
+let templateCard1 = { cx: 0, cy: 0, w: 0, h: 0 };
+let templateCard2 = { cx: 0, cy: 0, w: 0, h: 0 };
+let templateCard3 = { cx: 0, cy: 0, w: 0, h: 0 };
 
 function preload() {
   fontStart    = loadFont("Recipekorea.ttf");
@@ -50,38 +55,37 @@ function draw() {
     if (gameMode === "intro") {
       drawGamePage(); 
 
-      // 자동으로 n초 뒤에 실제 게임으로 전환
+      // 일정 시간 후 실제 게임으로 전환
       if (millis() - gameIntroStartTime > 2500) {
         gameMode = "play";
       }
     } else if (gameMode === "play") {
-    if (selectedGame === "animal") {
-      if (!animalInited) {
-        initAnimalGame();      
-        animalInited = true;
-      }
-      drawAnimalGame();
+      if (selectedGame === "animal") {
+        if (!animalInited) {
+          initAnimalGame();      
+          animalInited = true;
+        }
+        drawAnimalGame();
 
-    } else if (selectedGame === "cooking") {
-      if (!cookingInited) {
-        initCookingGame();    
-        cookingInited = true;
-      }
-      drawCookingGame();
+      } else if (selectedGame === "cooking") {
+        if (!cookingInited) {
+          initCookingGame();    
+          cookingInited = true;
+        }
+        drawCookingGame();
 
-    } else if (selectedGame === "house") {
-      if (!houseInited) {
-        initHouseGame();      
-        houseInited = true;
-      }
-      drawHouseGame();
+      } else if (selectedGame === "house") {
+        if (!houseInited) {
+          initHouseGame();      
+          houseInited = true;
+        }
+        drawHouseGame();
 
-    } else {
-      drawGamePage();
+      } else {
+        drawGamePage();
       }
     }
   } else if (phase === 5) {
-    // ✅ QR 다운로드 페이지
     drawQRPage();
   }
 
@@ -97,8 +101,8 @@ function draw() {
 
   if (millis() - lastActivityTime > INACTIVITY_LIMIT) {
     console.log("⏰ 1분 30초 동안 활동 없음 → 초기 화면으로 리셋");
-    resetAllState();      // 이미 phase=1, 카메라 정리 등을 해 주는 함수
-    lastActivityTime = millis();  // 리셋 직후 타이머 다시 시작
+    resetAllState();
+    lastActivityTime = millis();
   }
 
   if (phase !== 5 && typeof hideQRDiv === "function") {
@@ -107,7 +111,6 @@ function draw() {
 }
 
 // 1단계: 첫 페이지
-
 function drawStartPage() {
   background(215, 240, 249);
 
@@ -185,7 +188,7 @@ function drawStartPage() {
   }
   pop();
 
-  // 이모티콘 장식들 (크게 유지)
+  // 이모티콘 장식들
   push();
   translate(1125, 603);
   rotate(radians(20));
@@ -244,28 +247,40 @@ function drawStartPage() {
 }
 
 // 2단계: 템플릿 선택 페이지
-
 function drawTemplatePage() {
   background(215, 240, 249);
 
+  const margin = 40;
+
+  // 제목: 이모지 커스텀 페이지와 동일한 사이즈(40)
   push();
   textFont(fontTemplate);
   textAlign(CENTER, CENTER);
   fill(0);
   noStroke();
   textStyle(BOLD);
-  textSize(30);
-  text("어떤 게임을 플레이 할까요?", width / 2, 30);
+  textSize(40);
+  text("어떤 게임을 플레이 할까요?", width / 2, margin + 40);
   textStyle(NORMAL);
   pop();
 
+  // 카드 크기/위치 계산: 가로 가운데 정렬 + 간격
   let cardW = CARD_W;
   let cardH = CARD_H;
-  let yCenter = CARD_Y;
+  let yCenter = height / 2 + 20;    // 거의 세로 중앙
 
-  let x1 = 110;
-  let x2 = width / 2;
-  let x3 = width - 110;
+  let gap = 150;                    // 카드 사이 간격
+  let totalWidth = cardW * 3 + gap * 2;
+  let startX = (width - totalWidth) / 2 + cardW / 2;
+
+  let x1 = startX;
+  let x2 = startX + cardW + gap;
+  let x3 = startX + (cardW + gap) * 2;
+
+  // 전역 카드 정보 저장
+  templateCard1 = { cx: x1, cy: yCenter, w: cardW, h: cardH };
+  templateCard2 = { cx: x2, cy: yCenter, w: cardW, h: cardH };
+  templateCard3 = { cx: x3, cy: yCenter, w: cardW, h: cardH };
 
   let hover1 = isInsideCard(mouseX, mouseY, x1, yCenter, cardW, cardH);
   let hover2 = isInsideCard(mouseX, mouseY, x2, yCenter, cardW, cardH);
@@ -282,7 +297,7 @@ function drawTemplatePage() {
     "몽글몽글 동물 키우기",
     "귀여운 동물을 키우고\n교감해보아요!",
     hover1,
-    13
+    20
   );
 
   // 카드 2: 요리하기 (🥞)
@@ -311,19 +326,20 @@ function drawTemplatePage() {
     hover3
   );
 
-  let backW = 80;
-  let backH = 34;
-  let backX = 42;
-  let backY = 23;
+  // ← 이전 버튼: 사람 이모지 페이지와 동일한 크기/느낌
+  let backW = 110;
+  let backH = 52;
+  let backX = margin;
+  let backY = margin * 2.7;  // 이모지 페이지와 동일 위치
 
   let hovering =
-    mouseX > backX - backW / 2 &&
-    mouseX < backX + backW / 2 &&
-    mouseY > backY - backH / 2 &&
-    mouseY < backY + backH / 2;
+    mouseX > backX &&
+    mouseX < backX + backW &&
+    mouseY > backY &&
+    mouseY < backY + backH;
 
   push();
-  rectMode(CENTER);
+  rectMode(CORNER);
   stroke(0);
   strokeWeight(1.5);
   fill(hovering ? color(250, 210, 120) : color(230, 190, 140));
@@ -333,8 +349,8 @@ function drawTemplatePage() {
   noStroke();
   textFont(fontTemplate);
   textAlign(CENTER, CENTER);
-  textSize(14);
-  text("< 이전", backX, backY);
+  textSize(26); // 이모지 페이지와 동일
+  text("< 이전", backX + backW / 2, backY + backH / 2);
   pop();
 }
 
@@ -348,7 +364,7 @@ function isInsideCard(mx, my, cx, cy, w, h) {
   );
 }
 
-// 카드 하나 그리기
+// 카드 하나 그리기 (글자 크기 키운 버전)
 function drawTemplateCard(
   cx,
   cy,
@@ -361,11 +377,11 @@ function drawTemplateCard(
   hovered,
   topSizeOverride // 상단 설명 폰트 크기만 카드별로 조정 (옵션)
 ) {
-  let baseTopSize   = 14;  // 기본 상단 설명 크기
-  let baseTitleSize = 18;  // 제목 크기 (모든 카드 공통)
-  let baseDescSize  = 13;  // 아래 설명 크기 (모든 카드 공통)
+  // 글자 크기 전부 업
+  let baseTopSize   = 24;  // 카드 안 윗쪽 설명
+  let baseTitleSize = 30;  // 카드 아래 제목
+  let baseDescSize  = 24;  // 카드 아래 설명
 
-  // override가 있으면 그 값 사용, 없으면 기본값 14
   let topSize = topSizeOverride || baseTopSize;
 
   push();
@@ -374,7 +390,7 @@ function drawTemplateCard(
   // 바깥 패널
   noStroke();
   fill(115, 124, 150, hovered ? 255 : 235);
-  rect(cx, cy, w + 24, h + 32, 20);
+  rect(cx, cy, w + 30, h + 40, 24);
 
   // 안쪽 카드
   fill(230, 230, 233);
@@ -385,23 +401,23 @@ function drawTemplateCard(
   textFont(fontTemplate);
   fill(0);
   noStroke();
-  textSize(topSize);                 // ★ 카드별 상단 설명 크기
-  text(topText, cx, cy - h / 2 + 24);
+  textSize(topSize);
+  text(topText, cx, cy - h / 2 + 45);   // 글자 키워서 조금 더 내려줌
 
   // 사람 실루엣 (👤)
   let humanY = cy - 20;
   push();
   textAlign(CENTER, CENTER);
-  textSize(72);
+  textSize(90);
   textFont("sans-serif");
   text("👤", cx, humanY);
   pop();
 
   // 아이콘 (게임별 이모지) 
-  let iconY = cy + 70;
+  let iconY = cy + 95;
   push();
   textAlign(CENTER, CENTER);
-  textSize(56);
+  textSize(72);
   textFont("sans-serif");
   text(icon, cx, iconY);
   pop();
@@ -410,21 +426,22 @@ function drawTemplateCard(
   textAlign(CENTER, TOP);
   textFont(fontTemplate);
   textStyle(BOLD);
-  textSize(baseTitleSize);           // ★ 항상 18pt
+  textSize(baseTitleSize);
   fill(0);
-  text(bottomTitle, cx, cy + h / 2 + 26);
+  text(bottomTitle, cx, cy + h / 2 + 30);
 
   // 아래 설명 
   textStyle(NORMAL);
   textFont(fontTemplate);
-  textSize(baseDescSize);            // ★ 항상 13pt
+  textSize(baseDescSize);
   fill(40);
-  text(bottomDesc, cx, cy + h / 2 + 52);
+  text(bottomDesc, cx, cy + h / 2 + 68);
 
   pop();
 }
 
-// 3단계: 각 게임 페이지 (임시 UI)
+
+// 3단계: 각 게임 이름만 표시하는 임시 UI (phase 4 intro 용)
 function drawGamePage() {
   background(240);
   textAlign(CENTER, CENTER);
@@ -447,92 +464,83 @@ function mousePressed() {
 
   // 1단계: START 화면 → 템플릿 화면으로 이동
   if (phase === 1) {
-  let btnLeft = 470;
-  let btnRight = 970;
-  let btnTop = 616;
-  let btnBottom = 796;
+    let btnLeft = 470;
+    let btnRight = 970;
+    let btnTop = 616;
+    let btnBottom = 796;
     if (mouseX < btnRight && mouseX > btnLeft && mouseY < btnBottom && mouseY > btnTop) {
       phase = 2;
     }
   }
   // 2단계: 템플릿 선택 페이지 — 카드 클릭
   else if (phase === 2) {
-    let cardW = CARD_W;
-    let cardH = CARD_H;
-    let yCenter = CARD_Y;
-    let x1 = 110;
-    let x2 = width / 2;
-    let x3 = width - 110;
+    const margin = 40;
 
-    let backW = 80;
-    let backH = 34;
-    let backX = 40;
-    let backY = 23;
+    // ← 이전 버튼
+    let backW = 110;
+    let backH = 52;
+    let backX = margin;
+    let backY = margin * 2.7;
 
     let overBack =
-      mouseX > backX - backW / 2 &&
-      mouseX < backX + backW / 2 &&
-      mouseY > backY - backH / 2 &&
-      mouseY < backY + backH / 2;
+      mouseX > backX &&
+      mouseX < backX + backW &&
+      mouseY > backY &&
+      mouseY < backY + backH;
 
     if (overBack) {
       phase = 1;
-    return;
+      return;
     }
     
-    if (isInsideCard(mouseX, mouseY, x1, yCenter, cardW, cardH)) {
+    // 카드 클릭: 저장해 둔 templateCard1~3 사용
+    if (isInsideCard(mouseX, mouseY, templateCard1.cx, templateCard1.cy, templateCard1.w, templateCard1.h)) {
       selectedGame = "animal";
       phase = 3;
-      scene = 0;
-    } else if (isInsideCard(mouseX, mouseY, x2, yCenter, cardW, cardH)) {
+      scene = 1;                      // 바로 사람 이모지 커스텀 1단계
+      if (typeof humanEmojiStep !== "undefined") humanEmojiStep = 1;
+    } else if (isInsideCard(mouseX, mouseY, templateCard2.cx, templateCard2.cy, templateCard2.w, templateCard2.h)) {
       selectedGame = "cooking";
       phase = 3;
-      scene = 0;
-    } else if (isInsideCard(mouseX, mouseY, x3, yCenter, cardW, cardH)) {
+      scene = 1;
+      if (typeof humanEmojiStep !== "undefined") humanEmojiStep = 1;
+    } else if (isInsideCard(mouseX, mouseY, templateCard3.cx, templateCard3.cy, templateCard3.w, templateCard3.h)) {
       selectedGame = "house";
       phase = 3;
-      scene = 0;
+      scene = 1;
+      if (typeof humanEmojiStep !== "undefined") humanEmojiStep = 1;
     }
   }
   // 3단계: 이모지 선택
   else if (phase === 3) {
     if (scene === 0) {
-      // 아바타(사람/동물) 선택 화면
       mousePressedAvatar();
     } else if (scene === 1) {
-      // 사람 이모지 커스터마이징 화면
       mousePressedHumanEmoji();
     } else if (scene === 2) {
-      // 동물 이모지 커스터마이징 화면 (나중에 구현)
       mousePressedAnimalEmoji();
     }
   } else if (phase === 4 && gameMode === "play") {
-    // 🔹 각 게임별 클릭 처리만 호출
-    if (selectedGame === "animal")  mousePressedAnimalGame();
+    if (selectedGame === "animal")       mousePressedAnimalGame();
     else if (selectedGame === "cooking") mousePressedCookingGame();
     else if (selectedGame === "house")   mousePressedHouseGame();
   }  else if (phase === 5) {
-    // ✅ QR 화면 들어온 지 3000ms 이내의 클릭은 무시 (디바운스)
     if (millis() - qrEnterTime < 3000) return;
 
-    // ✅ 버튼 클릭 판정 함수
     const hit = (btn) =>
       mouseX > btn.x && mouseX < btn.x + btn.w &&
       mouseY > btn.y && mouseY < btn.y + btn.h;
 
-    // ✅ 1) 처음으로 (전체 리셋)
     if (hit(qrHomeBtn)) {
-      resetAllState();     // 너희 기존 전체 리셋 그대로
+      resetAllState();
       return;
     }
 
-    // ✅ 2) 다른 템플릿 해보기 (이모지 유지, 템플릿 선택으로)
     if (hit(qrTryBtn)) {
       goToTemplateSelectKeepEmoji();
       return;
     }
   }
-
 }
 
 function resetAllState() {
@@ -540,17 +548,15 @@ function resetAllState() {
   
   if (typeof resetQRPageState === "function") resetQRPageState();
 
-  // 1) 화면 단계 기본값
   phase = 1;
   selectedGame = null;
   gameMode = "intro";
 
-  // 2) 각 게임 init 플래그
   animalInited = false;
   cookingInited = false;
   houseInited = false;
 
-  // 3) 동물 키우기 자원 정리
+  // 동물
   if (typeof animalBodyPose !== "undefined" && animalBodyPose && animalBodyPose.detectStop) {
     animalBodyPose.detectStop();
     animalBodyPose = null;
@@ -564,7 +570,7 @@ function resetAllState() {
     animalHandsfree.stop();
   }
 
-  // 4) 요리하기 자원 정리
+  // 요리
   if (typeof cookVideo !== "undefined" && cookVideo) {
     cookVideo.stop();
     cookVideo = null;
@@ -576,7 +582,7 @@ function resetAllState() {
     cookTracker.stop();
   }
 
-  // 5) 집 짓기 자원 정리
+  // 집
   if (typeof houseVideo !== "undefined" && houseVideo) {
     houseVideo.stop();
     houseVideo = null;
@@ -585,31 +591,29 @@ function resetAllState() {
     houseBodyPose.detectStop();
   }
 
-  // 6) 아바타 / 이모지 관련 전역 변수 리셋 (stage2_avatar.js에 있는 애들)
+  // 이모지 관련
   if (typeof scene !== "undefined") {
-    scene = 0;          // 다시 '아바타 선택 화면'부터
+    scene = 1;          // 다시 들어오면 바로 사람 이모지 커스텀
   }
   if (typeof humanEmojiStep !== "undefined") {
-    humanEmojiStep = 1; // 사람 이모지 커스터마이징 1단계부터
+    humanEmojiStep = 1;
   }
   if (typeof humanComposedImg !== "undefined") {
-    humanComposedImg = null;  // 합성된 이모지 초기화
+    humanComposedImg = null;
   }
 
-  // 선택 상태들 0으로 리셋
   if (typeof selectedEyeNumber !== "undefined")  selectedEyeNumber = 0;
   if (typeof selectedNoseNumber !== "undefined") selectedNoseNumber = 0;
   if (typeof selectedMouthNum !== "undefined")   selectedMouthNum = 0;
   if (typeof selectedBrowNum !== "undefined")    selectedBrowNum = 0;
 
-  // 머리/악세사리 선택 변수들도 쓰고 있다면 같이 0으로
-  if (typeof selectedHairNum !== "undefined") selectedHairNum = 0;
-  if (typeof selectedAccNum  !== "undefined") selectedAccNum  = 0;
+  if (typeof selectedHairNum !== "undefined")  selectedHairNum  = 0;
+  if (typeof selectedAccNum  !== "undefined")  selectedAccNum   = 0;
   if (typeof selectedGlassNum  !== "undefined") selectedGlassNum  = 0;
 }
 
 function backToAvatarFromGame() {
-  // === 동물 게임 정리 ===
+  // 동물
   if (typeof animalBodyPose !== "undefined" && animalBodyPose && animalBodyPose.detectStop) {
     animalBodyPose.detectStop();
     animalBodyPose = null;
@@ -623,7 +627,6 @@ function backToAvatarFromGame() {
     animalHandsfree.stop();
   }
 
-  // 동물 단계/플래그 리셋
   if (typeof animalCurrentStep !== "undefined") {
     animalCurrentStep = 1;
   }
@@ -631,7 +634,7 @@ function backToAvatarFromGame() {
     animalStepDone = false;
   }
 
-  // === 요리 게임 정리 ===
+  // 요리
   if (typeof cookBodyPose !== "undefined" && cookBodyPose && cookBodyPose.detectStop) {
     cookBodyPose.detectStop();
     cookBodyPose = null;
@@ -646,7 +649,6 @@ function backToAvatarFromGame() {
     cookTracker = null;
   }
 
-  // 요리 단계/플래그 리셋
   if (typeof cookStage !== "undefined") {
     cookStage = 1;
   }
@@ -654,7 +656,7 @@ function backToAvatarFromGame() {
     cookStageDone = false;
   }
 
-  // === 집 짓기 정리 ===
+  // 집
   if (typeof houseBodyPose !== "undefined" && houseBodyPose && houseBodyPose.detectStop) {
     houseBodyPose.detectStop();
     houseBodyPose = null;
@@ -665,7 +667,6 @@ function backToAvatarFromGame() {
     houseVideo = null;
   }
 
-  // 집 짓기 단계/플래그 리셋
   if (typeof houseStep !== "undefined") {
     houseStep = 1;
   }
@@ -673,17 +674,13 @@ function backToAvatarFromGame() {
     houseStepDone = false;
   }
 
-  // init 플래그 리셋 (다시 들어가면 처음부터)
   animalInited  = false;
   cookingInited = false;
   houseInited   = false;
 
-  // 게임 모드는 intro로, 화면은 아바타/이모지(phase 3)로
   gameMode = "intro";
   phase    = 3;
-
-  // ⬇️ 필요하면 여기서 "이모지 2단계"로 강제 이동하는 변수도 같이 설정해줘도 됨
-  // 예: humanEmojiStep = 2; 또는 animalEmojiStep = 2; 등 네 구조에 맞게
+  if (typeof scene !== "undefined") scene = 1;
 }
 
 function markActivity() {
@@ -695,31 +692,28 @@ function mouseMoved() {
 }
 
 function goToQR() {
-  // === 동물 게임 정리 ===
+  // 동물
   if (typeof animalBodyPose !== "undefined" && animalBodyPose && animalBodyPose.detectStop) {
     animalBodyPose.detectStop();
     animalBodyPose = null;
   }
   if (typeof animalVideo !== "undefined" && animalVideo) {
     animalVideo.stop();
-    animalVideo.remove();   // ❗ 실제 DOM에서 제거
+    animalVideo.remove();
     animalVideo = null;
   }
   if (typeof animalHandsfree !== "undefined" && animalHandsfree) {
-    // 한 번만 만들고 재사용할 거면 여기서는 stop만 해도 OK
     animalHandsfree.stop();
-    // 필요하면 아래 줄도 가능 (완전 삭제)
-    // animalHandsfree = null;
   }
 
-  // === 요리 게임 정리 ===
+  // 요리
   if (typeof cookBodyPose !== "undefined" && cookBodyPose && cookBodyPose.detectStop) {
     cookBodyPose.detectStop();
     cookBodyPose = null;
   }
   if (typeof cookVideo !== "undefined" && cookVideo) {
     cookVideo.stop();
-    cookVideo.remove();   // ❗
+    cookVideo.remove();
     cookVideo = null;
   }
   if (typeof cookTracker !== "undefined" && cookTracker && cookTracker.stop) {
@@ -727,23 +721,21 @@ function goToQR() {
     cookTracker = null;
   }
 
-  // === 집 짓기 정리 ===
+  // 집
   if (typeof houseBodyPose !== "undefined" && houseBodyPose && houseBodyPose.detectStop) {
     houseBodyPose.detectStop();
     houseBodyPose = null;
   }
   if (typeof houseVideo !== "undefined" && houseVideo) {
     houseVideo.stop();
-    houseVideo.remove();   // ❗
+    houseVideo.remove();
     houseVideo = null;
   }
   
-  // QR 화면 진입 시간 기록 (디바운스)
   qrEnterTime = millis();
 
-  // ✅ (추가) QR 페이지 들어가기 전, 이전 QR DOM/상태 정리
   if (typeof resetQRPageState === "function") resetQRPageState();
 
-  gameMode = "intro";  // 다시 게임으로 안 돌아가게
-  phase    = 5;        // QR 단계로 이동
+  gameMode = "intro";
+  phase    = 5;
 }
