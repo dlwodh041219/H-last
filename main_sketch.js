@@ -34,6 +34,7 @@ function preload() {
   img          = loadImage("pen.jpeg");
   loadAnimalGuideImgs();
   loadCookGuideImgs();
+  loadHouseGuideImgs();
 }
 
 function setup() {
