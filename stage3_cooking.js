@@ -604,28 +604,16 @@ function cookUpdateTaste() {
 
   markActivity();
 
-  fill(255);
-  stroke(0);
+  // clmtrackr 입 포인트 (57: 윗입술, 60: 아랫입술)
+  if (!positions[57] || !positions[60]) return;
 
-  // 좌우 반전해서 그리기
-  let mirrored = [];
-  for (let i = 0; i < positions.length; i++) {
-    let x = width - positions[i][0];
-    let y = positions[i][1];
-    mirrored[i] = [x, y];
-    circle(x, y, 5);
-  }
-
-  // 입 포인트 (clmtrackr 인덱스)
-  let upperLip = mirrored[57];
-  let lowerLip = mirrored[60];
-  if (!upperLip || !lowerLip) return;
+  // 좌우 반전 좌표만 계산 (점은 그리지 않음)
+  let upperLip = [width - positions[57][0], positions[57][1]];
+  let lowerLip = [width - positions[60][0], positions[60][1]];
 
   let distMouth = dist(
-    upperLip[0],
-    upperLip[1],
-    lowerLip[0],
-    lowerLip[1]
+    upperLip[0], upperLip[1],
+    lowerLip[0], lowerLip[1]
   );
 
   let isOpen = distMouth > cookMouthOpenThres * 0.75;
@@ -662,10 +650,10 @@ function cookUpdateTaste() {
     cookStage = 4;
     cookStepStartTime = millis();
     cookStageDone = true;
-    cookDetectedText =
-      "🎉요리 완료! 사랑하는 사람들과 음식을 나눠 보세요!🎉";
+    cookDetectedText = "🎉요리 완료! 사랑하는 사람들과 음식을 나눠 보세요!🎉";
   }
 }
+
 
 // 디버깅용 키포인트 표시
 function cookDrawKeypoints() {
