@@ -153,14 +153,14 @@ houseGuideImgs[1] = [
 
 houseGuideImgs[2] = [
   loadImage("clear1(f).png"),
-  loadImage("Saw1(f).png"),
-  loadImage("Saw2(f).png")
+  loadImage("Saw1(ff).png"),
+  loadImage("Saw2(ff).png")
 ];
 
 houseGuideImgs[3] = [
   loadImage("clear2(f).png"),
-  loadImage("Hammer1(f).png"),
-  loadImage("Hammer2(f).png")
+  loadImage("Hammer1(ff).png"),
+  loadImage("Hammer2(ff).png")
 ];
 
 houseGuideImgs[4] = [
