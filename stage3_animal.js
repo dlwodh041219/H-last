@@ -65,8 +65,8 @@ function loadAnimalGuideImgs() {
   animalGuideImgs = {
     1: ['Hug(f).png'],
     2: ['clear1(f).png', 'Feed1.png', 'Feed2.png'],
-    3: ['2 clear.png', 'tap1(ff).png','tap2(ff).png'],
-    4: ['3 clear.png', 'Play1(f).png','Play2(f).png']
+    3: ['clear2(f).png', 'tap1(ff).png','tap2(ff).png'],
+    4: ['clear3(f).png', 'Play1(f).png','Play2(f).png']
   };
 
   // 단계별 로드 상태 초기화
