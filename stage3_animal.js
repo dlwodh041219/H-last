@@ -64,7 +64,7 @@ let guideImagesReady = { 1:false, 2:false, 3:false, 4:false };
 function loadAnimalGuideImgs() {
   animalGuideImgs = {
     1: ['Hug(f).png'],
-    2: ['1 clear.png', 'Feed1.png', 'Feed2.png'],
+    2: ['clear1(f).png', 'Feed1.png', 'Feed2.png'],
     3: ['2 clear.png', 'tap1(ff).png','tap2(ff).png'],
     4: ['3 clear.png', 'Play1(f).png','Play2(f).png']
   };
