@@ -263,8 +263,8 @@ function drawTutorialPage() {
     pop();
   }
 
+  // ===== tutorial1(step0): 버튼 2개 화면 =====
   if (tutorialStep === 0) {
-    // === 위치 미세조정 ===
     let btnOffsetX = -43;
     let btnOffsetY = 35;
 
@@ -277,7 +277,7 @@ function drawTutorialPage() {
     let rightX = leftX + leftW + gap;
     let rightW = 480;
 
-    // ✅ [핵심 수정] mousePressed에서 쓰는 히트영역(타원) 값을 여기서 매 프레임 갱신
+    // ✅ mousePressed에서 쓰는 히트영역(타원) 값을 여기서 매 프레임 갱신
     tutChoiceLeft.cx = leftX + leftW / 2;
     tutChoiceLeft.cy = y + h / 2;
     tutChoiceLeft.w = leftW;
@@ -352,7 +352,7 @@ function drawTutorialPage() {
     textFont(fontStart);
     textStyle(BOLD);
     textSize(54);
-    text("튜토리얼 보기", leftX + (leftW - h) / 2 + 30 , y + h / 2 - 1);
+    text("튜토리얼 보기", leftX + (leftW - h) / 2 + 30, y + h / 2 - 1);
     pop();
 
     push();
@@ -412,6 +412,10 @@ function drawTutorialPage() {
     mouseX > nextX && mouseX < nextX + btnW &&
     mouseY > nextY && mouseY < nextY + btnH;
 
+  // ✅ [여기만 핵심] 마지막 페이지면 next 문구만 "게임 시작 >"
+  let nextLabel = (tutorialStep === TUTORIAL_TOTAL - 1) ? "게임 시작 >" : "다음 >";
+  let nextTextSize = (tutorialStep === TUTORIAL_TOTAL - 1) ? 22 : 26;
+
   push();
   rectMode(CORNER);
   stroke(0);
@@ -437,10 +441,11 @@ function drawTutorialPage() {
   textFont(fontTemplate);
   textAlign(CENTER, CENTER);
   textSize(26);
-  text("다음 >", nextX + btnW / 2, nextY + btnH / 2);
+  text(nextLabel, nextX + btnW / 2, nextY + btnH / 2);
 
   pop();
 }
+
 
 
 
