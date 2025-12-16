@@ -421,7 +421,7 @@ function drawAnimalStepImage() {
 
   if(animalCurrentStep === 1){
     x = width / 2 - w / 2;
-    y = height - h +20;
+    y = height - h - 60;
   } else if(animalCurrentStep === 2){
     x = margin;
     y = height - h - margin;
@@ -1189,7 +1189,7 @@ function animalDrawUI() {
       desc = `3단계) 쓰다듬기: 오른손을 기준선을 중심으로 쓰다듬듯이 위아래로 3회 움직이세요! (${animalWaveCount}/${ANIMAL_REQUIRED_WAVES})`;
     else if (animalCurrentStep === 4)
       desc = `4단계) 놀아주기: 양팔을 기준선을 중심으로 위아래로 3회 움직이세요! (${animalSwingCount}/3)`;
-    textSize(40)
+    textSize(35)
     text(desc, width / 2, barCenterY);
   }
   pop();
