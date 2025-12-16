@@ -114,10 +114,10 @@ let COOK_COUNTDOWN_MS = 3000; // 3초
 
 function loadCookGuideImgs() {
   let guidePaths = {
-    0: ["Hammer1(f).png", "Hammer2(f).png"],
-    1: ["Play1(f).png", "Play2(f).png"],
-    2: ["sayhi1.png", "sayhi2.png"],
-    3: ["taste(f).png"]
+    0: ["Knife1(f).png", "Knife2(f).png"],
+    1: ["clear1(f).png", "Play1(f).png", "Play2(f).png"],
+    2: ["clear2(f).png","Welcome1(f).png", "Welcome2(f).png"],
+    3: ["clear3(f).png","Taste(f).png"]
   };
 
   let steps = Object.keys(guidePaths);

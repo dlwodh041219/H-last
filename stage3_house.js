@@ -53,6 +53,18 @@ let HOUSE_SKIP_DELAY_MS = 7000; // 7초 후 SKIP 활성화
 
 let houseImgs = [];
 
+
+// ====== 단계 가이드 (House) ======
+let houseGuideImgs = {};              // step별 가이드 이미지 배열
+let houseGuideImagesReady = {};       // step별 로딩 완료 여부
+let houseGuideLoaded = false;
+
+let showHouseGuide = false;
+let houseGuideIndex = 0;
+let houseGuideLastChange = 0;
+
+const HOUSE_GUIDE_INTERVAL = 1800; // 이미지 전환 ms
+
 // ====== 캡쳐(사진찍기) : House ======
 let houseCaptureMode = "NONE"; // "NONE" | "PREVIEW"
 let houseCapturedImg = null;
@@ -133,8 +145,59 @@ function initHouseGame() {
   houseImgs[4] = loadImage("house4.png")
 
   houseStepStartTime = millis();
+// ====== 단계별 가이드 이미지 ======
+houseGuideImgs[1] = [
+  loadImage("Ax1.png"),
+  loadImage("Ax2.png")
+];
 
+houseGuideImgs[2] = [
+  loadImage("clear1(f).png"),
+  loadImage("Saw1(f).png"),
+  loadImage("Saw2(f).png")
+];
+
+houseGuideImgs[3] = [
+  loadImage("clear2(f).png"),
+  loadImage("Hammer1(f).png"),
+  loadImage("Hammer2(f).png")
+];
+
+houseGuideImgs[4] = [
+  loadImage("clear3(f).png"),
+  loadImage("Welcome1(f).png"),
+  loadImage("Welcome2(f).png")
+];
+
+
+// 로딩 체크
+for (let step in houseGuideImgs) {
+  houseGuideImagesReady[step] = false;
+  Promise.all(
+    houseGuideImgs[step].map(
+      img =>
+        new Promise(res => {
+          if (img.width > 0) res();
+          else img.onload = res;
+        })
+    )
+  ).then(() => {
+    houseGuideImagesReady[step] = true;
+    checkHouseGuideAllLoaded();
+  });
 }
+onEnterHouseStep(1);
+}
+
+function checkHouseGuideAllLoaded() {
+  houseGuideLoaded = Object.values(houseGuideImagesReady).every(v => v);
+
+  if (houseGuideLoaded && houseStep === 1) {
+    onEnterHouseStep(1);
+  }
+}
+
+
 
 // BodyPose 콜백
 function gotHousePoses(results) {
@@ -232,12 +295,57 @@ function drawHouseGame() {
   drawHouseStepImage();
   pop();
 
+push();
+resetMatrix();
+drawHouseGuide();
+pop();
+
+
   // ✅ 완료 상태면 셔터 버튼 + 카운트다운/플래시
   if (houseStepDone && houseCaptureMode === "NONE") {
     houseDrawPhotoButton();
   }
   houseDrawFlashEffect();
   houseDrawCountdownOverlay();
+}
+
+function onEnterHouseStep(step) {
+  if (!houseGuideLoaded) return;
+  if (!houseGuideImagesReady[step]) return;
+
+  showHouseGuide = true;
+  houseGuideIndex = 0;
+  houseGuideLastChange = millis();
+}
+
+function drawHouseGuide() {
+  if (!showHouseGuide) return;
+
+  let imgs = houseGuideImgs[houseStep];
+  if (!imgs || imgs.length === 0) return;
+
+  let now = millis();
+  if (now - houseGuideLastChange > HOUSE_GUIDE_INTERVAL) {
+    houseGuideIndex++;
+    houseGuideLastChange = now;
+
+    if (houseGuideIndex >= imgs.length) {
+      houseGuideIndex = imgs.length - 1;
+      showHouseGuide = false;
+    }
+  }
+
+  let img = imgs[houseGuideIndex];
+  if (!img) return;
+
+  let w = width+230
+  let h = (img.height / img.width) * w;
+
+  push();
+  resetMatrix();
+    imageMode(CENTER);
+  image(img, width/2, height/2 +80, w, h);
+  pop();
 }
 
 function drawHouseStepImage() {
@@ -320,6 +428,7 @@ function houseUpdateAxe() {
   if (houseAxeCount >= 1) {
     houseStep = 2;
     houseStepStartTime = millis();
+    onEnterHouseStep(2);
     console.log("1단계 완료 → 2단계");
   }
 }
@@ -369,6 +478,7 @@ function houseUpdateSaw() {
   if (houseSawCycles >= 3) {
     houseStep = 3;
     houseStepStartTime = millis();
+      onEnterHouseStep(3);
     console.log("2단계 완료 → 3단계");
   }
 }
@@ -407,6 +517,7 @@ function houseUpdateHammer() {
   if (houseHammerCycles >= 5) {
     houseStep = 4;
     houseStepStartTime = millis();
+      onEnterHouseStep(4);
     console.log("3단계 완료 → 4단계");
   }
 }
@@ -600,6 +711,9 @@ function houseForceNextStep() {
   houseStepStartTime = millis();
 
   console.log("[House] 강제 진행 후 houseStep:", houseStep, "houseStepDone:", houseStepDone);
+
+  showHouseGuide = false;
+
 }
 
 
