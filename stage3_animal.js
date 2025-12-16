@@ -237,41 +237,82 @@ function animalUpdateBodyHeights() {
   if (nose) animalHeadY = nose.y;
   if (ls && rs) animalChestY = (ls.y + rs.y) / 2;
 }
+function animalForceNextStep() {
+  // 1단계 → 2단계
+  if (animalCurrentStep === 1) {
+    animalCurrentStep = 2;
+    animalStepStartTime = millis();
+    animalStepDone = false;
 
-function nextAnimalStep() {
-  animalCurrentStep++;
-  animalStepDone = false;
-
-  if (animalCurrentStep >= 1 && animalCurrentStep <= 4) {
-    showAnimalGuide = true;
-    animalGuideIndex = 0;
-    animalLastGuideSwitch = millis();
-    animalGuideEndTime = null;
-  }
-
-  // 단계별 초기화
-  if (animalCurrentStep === 2) {
     animalFood.visible = true;
     animalBowl.visible = true;
     animalFeedState = "CARROT";
     animalFeedHoldStart = null;
-  } else if (animalCurrentStep === 3) {
-    animalWaveState = "DOWN";
-    animalWaveCount = 0;
-  } else if (animalCurrentStep === 4) {
-    animalSwingState = "WAIT_UP";
-    animalSwingCount = 0;
-    animalSwingTimer = 0;
+
+    // 가이드 초기화
+    showAnimalGuide = true;
+    animalGuideIndex = 0;
+    animalLastGuideSwitch = millis();
+    animalGuideEndTime = null;
+
+    console.log("[Animal] SKIP: 1 → 2 (가이드 초기화 포함)");
+    return;
   }
 
-  animalStepStartTime = millis();
+  // 2단계 → 3단계
+  if (animalCurrentStep === 2) {
+    animalFood.visible = false;
+    animalBowl.visible = false;
+    animalCurrentStep = 3;
+    animalStepStartTime = millis();
+    animalStepDone = false;
+
+    // 가이드 초기화
+    showAnimalGuide = true;
+    animalGuideIndex = 0;
+    animalLastGuideSwitch = millis();
+    animalGuideEndTime = null;
+
+    console.log("[Animal] SKIP: 2 → 3 (가이드 초기화 포함)");
+    return;
+  }
+
+  // 3단계 → 4단계
+  if (animalCurrentStep === 3) {
+    animalCurrentStep = 4;
+    animalStepStartTime = millis();
+    animalStepDone = false;
+
+    // 가이드 초기화
+    showAnimalGuide = true;
+    animalGuideIndex = 0;
+    animalLastGuideSwitch = millis();
+    animalGuideEndTime = null;
+
+    console.log("[Animal] SKIP: 3 → 4 (가이드 초기화 포함)");
+    return;
+  }
+
+  // 4단계 → 완료(5)
+  if (animalCurrentStep === 4) {
+    animalCurrentStep = 5;
+    animalStepStartTime = millis();
+    animalStepDone = false;
+
+    console.log("[Animal] SKIP: 4 → 5 (완료)");
+    return;
+  }
+
+     onEnterHouseStep(houseStep);
 }
+
 
 
 
 // ================== 메인 draw에서 호출 ==================
 function drawAnimalGame() {
   background(255);
+
 
   // ★ 캠 + 이모지 아바타 풀스크린 (stage2_avatar.js의 함수)
   drawFaceFullScreen();
@@ -342,10 +383,11 @@ function drawAnimalGame() {
     }
   }
 
-      // ⭐ 가이드 이미지 먼저 그리기
-  if (animalGuideLoaded) {
+    // ⭐ 가이드 이미지 먼저 그리기
+  if (showAnimalGuide && animalGuideLoaded) {
     drawAnimalGuide();
     }
+
   }
 
 

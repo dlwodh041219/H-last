@@ -147,7 +147,7 @@ function initHouseGame() {
   houseStepStartTime = millis();
 // ====== 단계별 가이드 이미지 ======
 houseGuideImgs[1] = [
-  loadImage("Ax1.png"),
+  loadImage("Ax1(f).png"),
   loadImage("Ax2.png")
 ];
 
@@ -712,10 +712,18 @@ function houseForceNextStep() {
 
   console.log("[House] 강제 진행 후 houseStep:", houseStep, "houseStepDone:", houseStepDone);
 
-  showHouseGuide = false;
+ onEnterAnimalStep(animalCurrentStep);
 
 }
 
+function onEnterAnimalStep(step) {
+    if (!animalGuideLoaded) return;
+    if (!animalGuideImagesReady[step]) return;
+
+    showAnimalGuide = true;   // 가이드 표시 활성화
+    animalGuideIndex = 0;     // 인덱스 초기화
+    animalLastGuideSwitch = millis(); // 이미지 전환 타이머 초기화
+}
 
 
 function housePointInRect(px, py, r) {

@@ -822,6 +822,8 @@ function cookForceNextStage() {
   console.log("[Cooking] 강제 진행 후 cookStage:", cookStage);
 
   cookStepStartTime = millis();
+
+   onEnterHouseStep(houseStep);
 }
 
 
