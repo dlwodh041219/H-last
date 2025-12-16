@@ -65,7 +65,7 @@ function loadAnimalGuideImgs() {
   animalGuideImgs = {
     1: ['Hug(f).png'],
     2: ['1 clear.png', 'Feed1.png', 'Feed2.png'],
-    3: ['2 clear.png', 'tap1(f).png','tap2(f).png'],
+    3: ['2 clear.png', 'tap1(ff).png','tap2(ff).png'],
     4: ['3 clear.png', 'Play1(f).png','Play2(f).png']
   };
 
@@ -161,8 +161,8 @@ function initAnimalGame() {
   animalHeadY = null;
   animalChestY = null;
 
-  animalFood = { x: 500, y: 100, r: 50, visible: false }; // 1단계 끝나고 보이게
-  animalBowl = { x: 320, y: 400, r: 60, visible: false };
+  animalFood = { x: 1000, y: 300, r: 50, visible: false }; // 1단계 끝나고 보이게
+  animalBowl = { x: 700, y: 950, r: 60, visible: false };
 
   animalWaveState = "DOWN";
   animalWaveCount = 0;
@@ -414,25 +414,27 @@ function drawAnimalStepImage() {
   let img = puppyImgs[index];
   if (!img) return; // 이미지 아직 로드 안 됐으면 스킵
 
-  let w = 150;
+  let w = 500;
   let h = (img.height / img.width) * w;
+  let x,y;
+  let margin = 20;
 
-  let x = width - w - 20;    // 우측 하단
-  let y = height - h - 20;
-
-  // 흰 배경 박스
-  fill(255);
-  noStroke();
-  rect(x - 10, y - 10, w + 20, h + 20, 12);
+  if(animalCurrentStep === 1){
+    x = width / 2 - w / 2;
+    y = height - h +20;
+  } else if(animalCurrentStep === 2){
+    x = margin;
+    y = height - h - margin;
+  } else if(animalCurrentStep === 3){
+    x = width - w - 70;
+    y = height / 2 - h / 2 + 80;
+  } else if(animalCurrentStep === 4){
+     x = width / 2 - w / 2;
+    y = height - h +20;
+  }
 
   // 이미지 출력
   image(img, x, y, w, h);
-
-  // 제목
-  fill(0);
-  textAlign(CENTER, CENTER);
-  textSize(12)
-  text("진행 상황", x + 73, y);
 }
 
 
@@ -478,7 +480,7 @@ function animalDetectOpenArms() {
     fill(0, 0, 0, 150);
     rect(0, height - 80, width, 80);
     fill(255);
-    textSize(18);
+    textSize(40);
     text(
       "유지 시간: " + (elapsed / 1000).toFixed(1) + "초 / 3초",
       width / 2,
@@ -497,7 +499,7 @@ function animalDetectOpenArms() {
 // ================== 2단계: 밥 주기 ==================
 function animalDrawObjects() {
   push();
-  textSize(100);
+  textSize(150);
   textFont("sans-serif");
   if (animalFood.visible) text("🥕", animalFood.x, animalFood.y);
   if (animalBowl.visible) text("🥣", animalBowl.x, animalBowl.y);
@@ -1187,7 +1189,7 @@ function animalDrawUI() {
       desc = `3단계) 쓰다듬기: 오른손을 기준선을 중심으로 쓰다듬듯이 위아래로 3회 움직이세요! (${animalWaveCount}/${ANIMAL_REQUIRED_WAVES})`;
     else if (animalCurrentStep === 4)
       desc = `4단계) 놀아주기: 양팔을 기준선을 중심으로 위아래로 3회 움직이세요! (${animalSwingCount}/3)`;
-
+    textSize(40)
     text(desc, width / 2, barCenterY);
   }
   pop();

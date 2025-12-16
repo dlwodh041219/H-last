@@ -248,28 +248,30 @@ function drawHouseStepImage() {
   let img = houseImgs[stepIndex];
   if (!img) return;
 
-  let w = 150;
+  let w = 600;
   let h = (img.height / img.width) * w;
-  let x = width - w - 20;
-  let y = height - h - 20;
+  let x,y;
+  let margin = 20;
 
-  push();
-  // 배경 박스
-  fill(255);
-  noStroke();
-  rect(x - 10, y - 10, w + 20, h + 20, 12);
+  if (houseStep === 1){
+    x = margin;
+    y = height - h - margin;
+  } else if (houseStep === 2){
+    x = width / 2 - w / 5;
+    y = height - h +100;
+  } else if (houseStep === 3){
+    x = width / 2 - w / 2;
+    y = height - h +20;
+  } else if (houseStep === 4){
+    x = margin;
+    y = height / 2 - h/2 + 180;
+  }
 
   // 이미지
   push();
   image(img, x, y, w, h);
   pop();
 
-  // 텍스트
-  fill(0);
-  textAlign(CENTER, CENTER);
-  textSize(12)
-  text("진행 상황", x + 73, y);
-  pop();
 }
 
 
@@ -961,7 +963,7 @@ function drawHouseUI() {
   fill(255);
   textAlign(CENTER, CENTER);
   textFont(fontTemplate);
-  textSize(35);
+  textSize(40);
   text(desc, width / 2, barCenterY);
   pop();
 
