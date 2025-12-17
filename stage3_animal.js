@@ -604,12 +604,16 @@ function drawAnimalProgressBar() {
   resetMatrix();
   imageMode(CENTER);
 
-  // 크기: 화면 기준으로 적당히 (1440x1080이면 꽤 크게 보이게)
+  // 크기
   let barW = min(900, width * 0.65);
   let barH = (img.height / img.width) * barW;
 
-  // "많이 하단" 배치
-  let bottomMargin = 12; // 더 내리고 싶으면 0~20 사이로 조절
+  // ✅ 더 아래로 내리기: bottomMargin을 줄이거나 0/음수로
+  //   - 12  : 기존
+  //   - 0   : 거의 바닥
+  //   - -10 : 바닥 밖으로 조금 내려감(잘릴 수 있음)
+  let bottomMargin = -285;
+
   let cx = width / 2;
   let cy = height - bottomMargin - barH / 2;
 
