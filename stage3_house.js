@@ -148,10 +148,12 @@ function initHouseGame() {
 // ====== 단계별 가이드 이미지 ======
 houseGuideImgs[1] = [
   loadImage("Ax1(f).png"),
+  loadImage("Ax1(f).png"),
   loadImage("Ax2.png")
 ];
 
 houseGuideImgs[2] = [
+  loadImage("clear1(f).png"),
   loadImage("clear1(f).png"),
   loadImage("Saw1(ff).png"),
   loadImage("Saw2(ff).png")
@@ -159,11 +161,13 @@ houseGuideImgs[2] = [
 
 houseGuideImgs[3] = [
   loadImage("clear2(f).png"),
+  loadImage("clear2(f).png"),
   loadImage("Hammer1(ff).png"),
   loadImage("Hammer2(ff).png")
 ];
 
 houseGuideImgs[4] = [
+  loadImage("clear3(f).png"),
   loadImage("clear3(f).png"),
   loadImage("Welcome1(f).png"),
   loadImage("Welcome2(f).png")
@@ -713,17 +717,17 @@ function houseForceNextStep() {
 
   console.log("[House] 강제 진행 후 houseStep:", houseStep, "houseStepDone:", houseStepDone);
 
- onEnterAnimalStep(animalCurrentStep);
+ onEnterHouseStep(houseStep);
 
 }
 
-function onEnterAnimalStep(step) {
-    if (!animalGuideLoaded) return;
-    if (!animalGuideImagesReady[step]) return;
+function onEnterHouseStep(step) {
+    if (!houseGuideLoaded) return;
+    if (!houseGuideImagesReady[step]) return;
 
-    showAnimalGuide = true;   // 가이드 표시 활성화
-    animalGuideIndex = 0;     // 인덱스 초기화
-    animalLastGuideSwitch = millis(); // 이미지 전환 타이머 초기화
+    showHouseGuide = true;   // 가이드 표시 활성화
+    houseGuideIndex = 0;     // 인덱스 초기화
+    houseLastGuideSwitch = millis(); // 이미지 전환 타이머 초기화
 }
 
 
