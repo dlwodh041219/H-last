@@ -264,6 +264,7 @@ function drawHouseGame() {
 
   // ✅ 완료 + 프리뷰 전이면 "UI 없는 화면"을 먼저 저장
   if (houseStepDone && houseCaptureMode === "NONE") {
+    houseDrawCompleteShotUI();
     houseFrameNoUI = get(0, 0, width, height);
   }
 
@@ -1018,6 +1019,64 @@ function houseSkipRemainingSec() {
   return max(0, remain);
 }
 
+function houseDrawCompleteShotUI() {
+  if (!houseStepDone) return;
+
+  push();
+  resetMatrix(); // ✅ 좌표 꼬임 방지
+
+  // 🎉
+  push();
+  translate(200, 300);
+  rotate(radians(10));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎉", 0, 0);
+  pop();
+
+  // 🎊
+  push();
+  translate(1200, 430);
+  rotate(radians(-15));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎊", 0, 0);
+  pop();
+
+  // ✅ house4.png (너는 houseImgs[4]에 로드해놨으니 그걸 쓰자)
+  let img = houseImgs[4];
+  if (img) {
+    image(img, 160, 450, 500, (img.height / img.width) * 500);
+  }
+
+  // 👩‍👩‍👧‍👦
+  push();
+  translate(535, 840);
+  rotate(radians(0));
+  noStroke();
+  textFont("sans-serif");
+  textSize(100);
+  textAlign(CENTER, CENTER);
+  text("👩‍👩‍👧‍👦", 0, 0);
+  pop();
+
+  // 🎉
+  push();
+  translate(1070, 930);
+  rotate(radians(290));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎉", 0, 0);
+  pop();
+
+  pop();
+}
 
 // ================== UI ==================
 function drawHouseUI() {

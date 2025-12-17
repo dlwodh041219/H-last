@@ -1185,7 +1185,7 @@ function animalDrawCompleteShotUI() {
 
   // 🎉🎊💌 장식들
   push();
-  translate(200, 330);
+  translate(200, 300);
   rotate(radians(10));
   noStroke();
   textFont("sans-serif");
@@ -1205,7 +1205,7 @@ function animalDrawCompleteShotUI() {
   pop();
 
   push();
-  translate(600, 800);
+  translate(560, 800);
   rotate(radians(0));
   noStroke();
   textFont("sans-serif");
@@ -1227,7 +1227,7 @@ function animalDrawCompleteShotUI() {
   // ✅ puppy4.png (puppyImgs[3])
   let img = puppyImgs[3];
   if (img) {
-    image(img, 200, 480, 500, (img.height / img.width) * 500);
+    image(img, 160, 480, 500, (img.height / img.width) * 500);
   }
 
   pop();
