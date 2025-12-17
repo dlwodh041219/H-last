@@ -114,45 +114,58 @@ function draw() {
   try {
     if (phase === 1) {
       drawStartPage();
+
     } else if (phase === 1.5) {
       drawTutorialPage();
+
     } else if (phase === 2) {
       drawTemplatePage();
+
     } else if (phase === 3) {
       if (typeof drawAvatarScene === "function") drawAvatarScene();
       else throw new Error("drawAvatarScene()가 없습니다. stage2_avatar.js 로드 확인");
+
     } else if (phase === 4) {
-      if (gameMode === "intro") {
-        drawGamePage();
-        if (millis() - gameIntroStartTime > 2500) gameMode = "play";
-      } else if (gameMode === "play") {
-        if (selectedGame === "animal") {
-          if (!animalInited) { safeCall("initAnimalGame"); animalInited = true; }
-          safeCall("drawAnimalGame");
-        } else if (selectedGame === "cooking") {
-          if (!cookingInited) { safeCall("initCookingGame"); cookingInited = true; }
-          safeCall("drawCookingGame");
-        } else if (selectedGame === "house") {
-          if (!houseInited) { safeCall("initHouseGame"); houseInited = true; }
-          safeCall("drawHouseGame");
-        } else {
-          drawGamePage();
-        }
+      // ✅ 메인 스케치의 "게임 시작!" 인트로는 제거
+      // 각 게임(stage3_animal/cook/house)에서 인트로/로딩 오버레이를 처리
+      gameMode = "play";
+
+      if (selectedGame === "animal") {
+        if (!animalInited) { safeCall("initAnimalGame"); animalInited = true; }
+        safeCall("drawAnimalGame");
+
+      } else if (selectedGame === "cooking") {
+        if (!cookingInited) { safeCall("initCookingGame"); cookingInited = true; }
+        safeCall("drawCookingGame");
+
+      } else if (selectedGame === "house") {
+        if (!houseInited) { safeCall("initHouseGame"); houseInited = true; }
+        safeCall("drawHouseGame");
+
+      } else {
+        background(240);
+        push();
+        textAlign(CENTER, CENTER);
+        textFont(fontTemplate);
+        fill(0);
+        noStroke();
+        textSize(28);
+        text("게임이 선택되지 않았습니다.", width / 2, height / 2);
+        pop();
       }
+
     } else if (phase === 5) {
       if (typeof drawQRPage === "function") drawQRPage();
       else throw new Error("drawQRPage()가 없습니다. stage4_QR.js 로드 확인");
     }
 
-    // ✅ 커서 표시 조건
+    // ✅ 커서 표시 조건 (gameMode 의존 제거)
     let isGamePlay =
       (phase === 4) &&
-      (gameMode === "play") &&
       (selectedGame === "animal" || selectedGame === "cooking" || selectedGame === "house");
 
     let showCursor = true;
 
-    // ✅ animal/cook/house 플레이 화면에서만: 2초 무움직임이면 숨김
     if (isGamePlay) {
       showCursor = (millis() - lastMouseMoveTime) < CURSOR_HIDE_MS;
     }
@@ -182,6 +195,7 @@ function draw() {
     console.error(e);
   }
 }
+
 
 
 // 1단계: 첫 페이지
@@ -635,21 +649,9 @@ function drawTemplateCard(
 
 // 3단계: 각 게임 이름만 표시하는 임시 UI
 function drawGamePage() {
-  background(240);
-  textAlign(CENTER, CENTER);
-  textFont(fontTemplate);
-  fill(0);
-  noStroke();
-  textSize(28);
-
-  let label = "";
-  if (selectedGame === "animal") label = "동물 키우기 게임 시작!";
-  else if (selectedGame === "cooking") label = "요리하기 게임 시작!";
-  else if (selectedGame === "house") label = "집 짓기 게임 시작!";
-  else label = "게임이 선택되지 않았습니다.";
-
-  text(label, width / 2, height / 2);
+  // ✅ 더 이상 사용 안 함 (메인 인트로 제거)
 }
+
 
 function mousePressed() {
   markActivity();
@@ -909,9 +911,10 @@ function backToAvatarFromGame() {
   cookingInited = false;
   houseInited = false;
 
-  gameMode = "intro";
+  // ✅ 메인 gameMode 인트로 자체가 없으니, 그냥 아바타 화면으로
   phase = 3;
   if (typeof scene !== "undefined") scene = 1;
+  if (typeof humanEmojiStep !== "undefined") humanEmojiStep = 1;
 }
 
 function markActivity() {
