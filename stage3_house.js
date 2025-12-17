@@ -1070,14 +1070,18 @@ function drawHouseUI() {
     desc = "집 짓기 완료! 셔터를 눌러 뿌듯한 순간을 사진으로 기록해 보세요!";
   } else {
     // ✅ 진행 중 단계 텍스트
-    if (houseStep === 1)
+    if (houseStep === 1) {
       desc = "1단계) 도끼질: 양손 깍지를 끼고, 머리 위에서 아래로 크게 내리세요!";
-    else if (houseStep === 2)
+    }
+    else if (houseStep === 2) {
       desc = `2단계) 톱질: 옆으로 서서 양손 깍지를 끼고, 앞뒤로 움직여요! (${houseSawCycles}/3)`;
-    else if (houseStep === 3)
+    }
+    else if (houseStep === 3) {
       desc = `3단계) 망치질: 오른손을 위아래로 5회 왕복해서 움직여요! (${houseHammerCycles}/5)`;
-    else if (houseStep === 4)
+    }
+      else if (houseStep === 4) {
       desc = `4단계) 집들이 인사: 오른손을 좌우로 인사하듯 3회 흔들어요! (${houseWaveCycles}/3)`;
+    }
   }
 
   push();
