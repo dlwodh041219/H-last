@@ -992,6 +992,7 @@ function houseDrawCountdownOverlay() {
 
   fill(255);
   textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
   textSize(140);
   text(num, width / 2, height / 2);
   pop();

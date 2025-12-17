@@ -952,6 +952,7 @@ function animalDrawCountdownOverlay() {
 
   fill(255);
   textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
   textSize(140);                 // 더 크게
   text(num, width / 2, height / 2);
   pop();
