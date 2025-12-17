@@ -5,6 +5,11 @@ let animalCurrentPose = null;
 let animalGuideImgs = {};   // ⭐ 단계별 가이드 이미지 저장용
 let animalGuideLoaded = false; // 로딩 완료 여부
 let animalGuideEndTime = null;
+// ====== 진행도 BAR 이미지 ======
+let animalBarImgs = { 1:null, 2:null, 3:null, 4:null };
+let animalBarReady = { 1:false, 2:false, 3:false, 4:false };
+let animalBarLoaded = false;
+
 
 // 단계
 let animalCurrentStep = 1;
@@ -104,6 +109,37 @@ function loadAnimalGuideImgs() {
   }
 }
 
+function loadAnimalBarImgs() {
+  // 파일 경로: bar/bar25.png 이런 형태 (확장자 다르면 여기만 바꾸면 됨)
+  const paths = {
+    1: "bar/bar25.png",
+    2: "bar/bar50.png",
+    3: "bar/bar75.png",
+    4: "bar/bar100.png"
+  };
+
+  animalBarImgs = { 1:null, 2:null, 3:null, 4:null };
+  animalBarReady = { 1:false, 2:false, 3:false, 4:false };
+  animalBarLoaded = false;
+
+  let loaded = 0;
+  let total = 4;
+
+  Object.keys(paths).forEach((k) => {
+    let step = Number(k);
+    loadImage(paths[step], (img) => {
+      animalBarImgs[step] = img;
+      animalBarReady[step] = true;
+      loaded++;
+
+      if (loaded === total) {
+        animalBarLoaded = true;
+        console.log("✅ Animal bar images loaded!");
+      }
+    });
+  });
+}
+
 
 // ✅ 각 단계 이미지가 모두 로드됐는지 확인 후 ready 설정
 function checkGuideLoaded(step) {
@@ -134,26 +170,21 @@ let ANIMAL_COUNTDOWN_MS = 3000;
 // ================== 초기화 (메인에서 호출) ==================
 function initAnimalGame() {
 
-  // ★ 카메라는 stage2_avatar.js 의 전역 video를 재사용
-  //    (setup()에서 initFaceMesh()가 이미 video를 만들어놨다고 가정)
   if (!video) {
-    // 혹시 모를 안전장치 (없으면 만들어줌)
     video = createCapture(VIDEO);
     video.size(640, 480);
     video.hide();
   }
 
-  // BodyPose (MoveNet, 좌우반전)  ★ detectStart에 video 사용
   animalBodyPose = ml5.bodyPose(
     "MoveNet",
     { flipped: true },
     () => {
       console.log("Animal BodyPose ready");
-      animalBodyPose.detectStart(video, animalGotPoses);  // ★ animalVideo → video
+      animalBodyPose.detectStart(video, animalGotPoses);
     }
   );
 
-  // 단계 초기화
   animalCurrentStep = 1;
   animalStepDone = false;
 
@@ -161,7 +192,7 @@ function initAnimalGame() {
   animalHeadY = null;
   animalChestY = null;
 
-  animalFood = { x: 1000, y: 300, r: 50, visible: false }; // 1단계 끝나고 보이게
+  animalFood = { x: 1000, y: 300, r: 50, visible: false };
   animalBowl = { x: 500, y: 800, r: 60, visible: false };
 
   animalWaveState = "DOWN";
@@ -179,7 +210,6 @@ function initAnimalGame() {
   puppyImgs[2] = loadImage('puppy3.png');
   puppyImgs[3] = loadImage('puppy4.png');
 
-
   animalCaptureMode = "NONE";
   animalCapturedImg = null;
   animalFlashAlpha = 0;
@@ -187,7 +217,12 @@ function initAnimalGame() {
 
   animalStepStartTime = millis();
 
+  // ✅ 진행도 BAR 이미지 로드(처음 1회)
+  if (!animalBarLoaded) {
+    loadAnimalBarImgs();
+  }
 }
+
 
 // BodyPose 콜백
 function animalGotPoses(results) {
@@ -313,17 +348,15 @@ function animalForceNextStep() {
 function drawAnimalGame() {
   background(255);
 
-
-  // ★ 캠 + 이모지 아바타 풀스크린 (stage2_avatar.js의 함수)
   drawFaceFullScreen();
 
+  // 프리뷰면 프리뷰만
   if (animalCurrentStep > 4 && animalCaptureMode === "PREVIEW") {
     animalDrawPhotoPreview();
-    animalDrawFlashEffect(); // 프리뷰에서도 플래시 잔상 자연스럽게 사라지게
+    animalDrawFlashEffect();
     return;
   }
 
-  // 이하 로직은 그대로 유지 (포즈/단계 판정)
   if (animalCurrentStep === 1) {
     animalDrawKeypoints();
     animalStepDone = animalDetectOpenArms();
@@ -334,16 +367,14 @@ function drawAnimalGame() {
   } else if (animalCurrentStep === 3) {
     animalDrawKeypoints();
     animalDetectWave();
-  
   } else if (animalCurrentStep === 4) {
     animalDrawKeypoints();
     animalPlayWithAnimal();
   }
 
-  // ✅ (중요) UI 그리기 전에, "UI 없는 화면"을 저장해둠
+  // ✅ 완료 직전 "UI 없는 화면" 저장
   if (animalCurrentStep > 4 && animalCaptureMode === "NONE") {
     animalDrawCompleteShotUI();
-
     animalFrameNoUI = get(0, 0, width, height);
   }
 
@@ -355,7 +386,9 @@ function drawAnimalGame() {
   resetMatrix();
   drawAnimalStepImage();
   pop();
-  
+
+  // ✅ 1~4단계 진행도 BAR (중앙 하단)
+  drawAnimalProgressBar();
 
   // 단계 완료 시 다음 단계로
   if (animalStepDone) {
@@ -363,7 +396,6 @@ function drawAnimalGame() {
     animalStepStartTime = millis();
     animalStepDone = false;
 
-    // ⭐ 새 단계 가이드 다시 켜기 (단, 1~4단계까지만)
     if (animalCurrentStep >= 1 && animalCurrentStep <= 4) {
       showAnimalGuide = true;
       animalGuideIndex = 0;
@@ -385,12 +417,11 @@ function drawAnimalGame() {
     }
   }
 
-    // ⭐ 가이드 이미지 먼저 그리기
+  // 가이드(최상단 오버레이)
   if (showAnimalGuide && animalGuideLoaded) {
     drawAnimalGuide();
-    }
-
   }
+}
 
 
 
@@ -481,6 +512,31 @@ function drawAnimalStepImage() {
   image(img, x, y, w, h);
 }
 
+function drawAnimalProgressBar() {
+  // 1~4단계에서만 표시
+  if (animalCurrentStep < 1 || animalCurrentStep > 4) return;
+  if (!animalBarLoaded) return;
+  if (!animalBarReady[animalCurrentStep]) return;
+
+  let img = animalBarImgs[animalCurrentStep];
+  if (!img || img.width <= 0) return;
+
+  push();
+  resetMatrix();
+  imageMode(CENTER);
+
+  // 크기: 화면 기준으로 적당히 (1440x1080이면 꽤 크게 보이게)
+  let barW = min(900, width * 0.65);
+  let barH = (img.height / img.width) * barW;
+
+  // "많이 하단" 배치
+  let bottomMargin = 12; // 더 내리고 싶으면 0~20 사이로 조절
+  let cx = width / 2;
+  let cy = height - bottomMargin - barH / 2;
+
+  image(img, cx, cy, barW, barH);
+  pop();
+}
 
 
 // ================== 1단계: 안아주기 (양팔 크게 벌리고 3초 유지) ==================
