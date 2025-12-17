@@ -463,10 +463,10 @@ function drawAnimalStepImage() {
 
   if(animalCurrentStep === 1){
     x = width / 2 - w / 2;
-    y = height - h - 60;
+    y = height - h - 70;
   } else if(animalCurrentStep === 2){
-    x = margin;
-    y = height - h - margin;
+    x = width - w - 70;
+    y = height - h - 80;
   } else if(animalCurrentStep === 3){
     x = width - w - 70;
     y = height / 2 - h / 2 + 80;
