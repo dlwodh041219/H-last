@@ -612,7 +612,7 @@ function drawAnimalProgressBar() {
   //   - 12  : 기존
   //   - 0   : 거의 바닥
   //   - -10 : 바닥 밖으로 조금 내려감(잘릴 수 있음)
-  let bottomMargin = -285;
+  let bottomMargin = 550;
 
   let cx = width / 2;
   let cy = height - bottomMargin - barH / 2;
