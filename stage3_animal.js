@@ -9,6 +9,14 @@ let animalGuideEndTime = null;
 let animalBarImgs = { 1:null, 2:null, 3:null, 4:null };
 let animalBarReady = { 1:false, 2:false, 3:false, 4:false };
 let animalBarLoaded = false;
+// ====== Animal 시작 로딩(인트로) ======
+let animalIntroActive = true;
+let animalIntroStart = 0;
+let animalIntroPoseSeen = false;
+let animalIntroPoseSeenAt = 0;
+let ANIMAL_INTRO_MIN_MS = 1000;  // 최소 1초는 보여주기
+let ANIMAL_INTRO_AFTER_POSE_MS = 400; // 포즈 잡힌 후 조금만 더 보여주고 닫기
+
 
 
 // 단계
@@ -167,7 +175,6 @@ let animalCountdownStart = 0;
 let ANIMAL_COUNTDOWN_MS = 3000;
 
 
-// ================== 초기화 (메인에서 호출) ==================
 function initAnimalGame() {
 
   if (!video) {
@@ -221,7 +228,14 @@ function initAnimalGame() {
   if (!animalBarLoaded) {
     loadAnimalBarImgs();
   }
+
+  // ✅ 인트로(로딩창) 상태 초기화
+  animalIntroActive = true;
+  animalIntroStart = millis();
+  animalIntroPoseSeen = false;
+  animalIntroPoseSeenAt = 0;
 }
+
 
 
 // BodyPose 콜백
@@ -232,8 +246,54 @@ function animalGotPoses(results) {
   if (animalCurrentPose) {
     animalUpdateBodyHeights();
     markActivity();
+
+    // ✅ 처음으로 포즈가 잡힌 순간 기록
+    if (!animalIntroPoseSeen) {
+      animalIntroPoseSeen = true;
+      animalIntroPoseSeenAt = millis();
+    }
   }
 }
+
+function drawAnimalIntroOverlay() {
+  // 화면 스케일(해상도 커져도 적당히)
+  let ui = min(width / 640, height / 480);
+  ui = constrain(ui, 1.0, 2.0);
+
+  push();
+  resetMatrix();
+
+  // 어두운 오버레이
+  noStroke();
+  fill(0, 170);
+  rect(0, 0, width, height);
+
+  // ===== 중앙 타이틀 =====
+  fill(255);
+  textAlign(CENTER, CENTER);
+
+  // Recipekorea.ttf 로드된 변수가 fontStart 라는 전제 (네 프로젝트에서 그렇게 쓰고 있었음)
+  if (typeof fontStart !== "undefined" && fontStart) textFont(fontStart);
+  textStyle(BOLD);
+  textSize(70 * ui);  // 더 크게
+  text("동물 키우기 게임 시작", width / 2, height * 0.45);
+
+  // ===== 하단 Tip 2줄 (komi.otf) =====
+  if (typeof fontTemplate !== "undefined" && fontTemplate) textFont(fontTemplate);
+  textStyle(NORMAL);
+  textSize(26 * ui);
+
+  let tip1 = "Tip: 모자, 마스크 등을 벗고 해야 동작 인식이 더 잘 됩니다";
+  let tip2 = "Tip: 카메라에 스켈레톤(점)이 표시될 때까지 기다린 후 동작을 수행해요";
+
+  let baseY = height - 120 * ui;   // 많이 하단
+  text(tip1, width / 2, baseY);
+  text(tip2, width / 2, baseY + 38 * ui);
+
+  pop();
+}
+
+
 
 // 특정 관절 + 스무딩
 function animalGetPart(name, minConf = ANIMAL_BASE_MIN_CONF) {
@@ -350,6 +410,24 @@ function drawAnimalGame() {
 
   drawFaceFullScreen();
 
+  // ✅ 0) 시작 인트로(로딩창)
+  if (animalIntroActive) {
+    drawAnimalIntroOverlay();
+
+    // 종료 조건:
+    // - 최소 1초는 보여주고
+    // - 포즈(스켈레톤)가 한번이라도 잡힌 뒤
+    // - 포즈 잡힌 후 0.4초 정도 더 보여주고 닫기
+    let t = millis();
+    let minOK = (t - animalIntroStart) >= ANIMAL_INTRO_MIN_MS;
+    let poseOK = animalIntroPoseSeen && (t - animalIntroPoseSeenAt) >= ANIMAL_INTRO_AFTER_POSE_MS;
+
+    if (minOK && poseOK) {
+      animalIntroActive = false;
+    }
+    return;
+  }
+
   // 프리뷰면 프리뷰만
   if (animalCurrentStep > 4 && animalCaptureMode === "PREVIEW") {
     animalDrawPhotoPreview();
@@ -422,6 +500,7 @@ function drawAnimalGame() {
     drawAnimalGuide();
   }
 }
+
 
 
 
