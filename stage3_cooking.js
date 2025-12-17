@@ -334,8 +334,10 @@ function drawCookingGame() {
 
   // ✅ 완료 상태 + 프리뷰 전이면 "UI 없는 화면"을 먼저 저장해둠 (중요!)
   if (cookStage === 4 && cookStageDone && cookCaptureMode === "NONE") {
-    cookFrameNoUI = get(0, 0, width, height);
+    cookDrawCompleteShotUI();                // ✅ 장식 UI 먼저 그리기 (사진에 포함)
+    cookFrameNoUI = get(0, 0, width, height); // ✅ 그 상태로 저장 (상단바/셔터는 아직 안 그림)
   }
+
 
   // ✅ 프리뷰 화면이면 프리뷰만 그리고 return
   if (cookStage === 4 && cookStageDone && cookCaptureMode === "PREVIEW") {
@@ -1142,6 +1144,65 @@ function cookSkipRemainingSec() {
   return max(0, remain);
 }
 
+function cookDrawCompleteShotUI() {
+  if (!(cookStage === 4 && cookStageDone)) return;
+
+  let img = cookImgs[3]; // cook4.png
+  if (!img) return;
+
+  push();
+  resetMatrix();
+
+  push();
+  translate(340, 300);
+  rotate(radians(10));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎉", 0, 0);
+  pop();
+
+  push();
+  translate(1250, 430);
+  rotate(radians(-15));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎊", 0, 0);
+  pop();
+
+  image(
+    img,
+    width / 2 - 275,
+    height - (img.height / img.width) * 550 - 30,
+    550,
+    (img.height / img.width) * 550
+  );
+
+  push();
+  translate(180, 760);
+  rotate(radians(-10));
+  noStroke();
+  textFont("sans-serif");
+  textSize(100);
+  textAlign(CENTER, CENTER);
+  text("🤤", 0, 0);
+  pop();
+
+  push();
+  translate(1120, 850);
+  rotate(radians(0));
+  noStroke();
+  textFont("sans-serif");
+  textSize(200);
+  textAlign(CENTER, CENTER);
+  text("🥤", 0, 0);
+  pop();
+
+  pop();
+}
 
 // 화면 표시(UI)
 function cookDrawStageInfo() {

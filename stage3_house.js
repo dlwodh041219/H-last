@@ -264,6 +264,7 @@ function drawHouseGame() {
 
   // ✅ 완료 + 프리뷰 전이면 "UI 없는 화면"을 먼저 저장
   if (houseStepDone && houseCaptureMode === "NONE") {
+    houseDrawCompleteShotUI();
     houseFrameNoUI = get(0, 0, width, height);
   }
 
@@ -1018,6 +1019,64 @@ function houseSkipRemainingSec() {
   return max(0, remain);
 }
 
+function houseDrawCompleteShotUI() {
+  if (!houseStepDone) return;
+
+  push();
+  resetMatrix(); // ✅ 좌표 꼬임 방지
+
+  // 🎉
+  push();
+  translate(200, 300);
+  rotate(radians(10));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎉", 0, 0);
+  pop();
+
+  // 🎊
+  push();
+  translate(1200, 430);
+  rotate(radians(-15));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎊", 0, 0);
+  pop();
+
+  // ✅ house4.png (너는 houseImgs[4]에 로드해놨으니 그걸 쓰자)
+  let img = houseImgs[4];
+  if (img) {
+    image(img, 160, 450, 500, (img.height / img.width) * 500);
+  }
+
+  // 👩‍👩‍👧‍👦
+  push();
+  translate(535, 840);
+  rotate(radians(0));
+  noStroke();
+  textFont("sans-serif");
+  textSize(100);
+  textAlign(CENTER, CENTER);
+  text("👩‍👩‍👧‍👦", 0, 0);
+  pop();
+
+  // 🎉
+  push();
+  translate(1070, 930);
+  rotate(radians(290));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎉", 0, 0);
+  pop();
+
+  pop();
+}
 
 // ================== UI ==================
 function drawHouseUI() {
@@ -1070,14 +1129,18 @@ function drawHouseUI() {
     desc = "집 짓기 완료! 셔터를 눌러 뿌듯한 순간을 사진으로 기록해 보세요!";
   } else {
     // ✅ 진행 중 단계 텍스트
-    if (houseStep === 1)
+    if (houseStep === 1) {
       desc = "1단계) 도끼질: 양손 깍지를 끼고, 머리 위에서 아래로 크게 내리세요!";
-    else if (houseStep === 2)
+    }
+    else if (houseStep === 2) {
       desc = `2단계) 톱질: 옆으로 서서 양손 깍지를 끼고, 앞뒤로 움직여요! (${houseSawCycles}/3)`;
-    else if (houseStep === 3)
+    }
+    else if (houseStep === 3) {
       desc = `3단계) 망치질: 오른손을 위아래로 5회 왕복해서 움직여요! (${houseHammerCycles}/5)`;
-    else if (houseStep === 4)
+    }
+      else if (houseStep === 4) {
       desc = `4단계) 집들이 인사: 오른손을 좌우로 인사하듯 3회 흔들어요! (${houseWaveCycles}/3)`;
+    }
   }
 
   push();

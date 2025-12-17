@@ -342,6 +342,8 @@ function drawAnimalGame() {
 
   // ✅ (중요) UI 그리기 전에, "UI 없는 화면"을 저장해둠
   if (animalCurrentStep > 4 && animalCaptureMode === "NONE") {
+    animalDrawCompleteShotUI();
+
     animalFrameNoUI = get(0, 0, width, height);
   }
 
@@ -463,10 +465,10 @@ function drawAnimalStepImage() {
 
   if(animalCurrentStep === 1){
     x = width / 2 - w / 2;
-    y = height - h - 60;
+    y = height - h - 70;
   } else if(animalCurrentStep === 2){
-    x = margin;
-    y = height - h - margin;
+    x = width - w - 70;
+    y = height - h - 80;
   } else if(animalCurrentStep === 3){
     x = width - w - 70;
     y = height / 2 - h / 2 + 80;
@@ -522,7 +524,7 @@ function animalDetectOpenArms() {
     fill(0, 0, 0, 150);
     rect(0, height - 80, width, 80);
     fill(255);
-    textSize(40);
+    textSize(36);
     text(
       "유지 시간: " + (elapsed / 1000).toFixed(1) + "초 / 3초",
       width / 2,
@@ -548,9 +550,11 @@ function animalDrawObjects() {
   pop();
 }
 
-function animalPointInCircle(p, c) {
+let ANIMAL_TOUCH_MARGIN = 35; // 20~60 사이로 조절 추천
+
+function animalPointInCircle(p, c, extra = 0) {
   if (!p || !c || !c.visible) return false;
-  return dist(p.x, p.y, c.x, c.y) <= c.r;
+  return dist(p.x, p.y, c.x, c.y) <= (c.r + extra);
 }
 
 // step2에서 쓸 오른손 포인트(손목) 가져오기
@@ -590,7 +594,7 @@ function animalUpdateFeedStepByBodyPose() {
     return;
   }
 
-  let inside = animalPointInCircle(hand, target);
+  let inside = animalPointInCircle(hand, target, ANIMAL_TOUCH_MARGIN);
 
   if (inside) {
     if (animalFeedHoldStart === null) animalFeedHoldStart = millis();
@@ -599,10 +603,10 @@ function animalUpdateFeedStepByBodyPose() {
     // 하단 진행 표시(선택)
     push();
     fill(0, 0, 0, 150);
-    rect(0, height - 70, width, 70);
+    rect(0, height - 80, width, 80);
     fill(255);
     textAlign(CENTER, CENTER);
-    textSize(16);
+    textSize(36);
     text(`${label} 터치 유지: ${(elapsed/1000).toFixed(1)}초 / 2.0초`, width/2, height - 35);
     pop();
 
@@ -1173,6 +1177,61 @@ function animalSkipRemainingSec() {
   return max(0, remain);
 }
 
+function animalDrawCompleteShotUI() {
+  if (animalCurrentStep !== 5) return;
+
+  push();
+  resetMatrix(); // ✅ 캡쳐에 안정적으로 찍히게 좌표계 초기화
+
+  // 🎉🎊💌 장식들
+  push();
+  translate(200, 300);
+  rotate(radians(10));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎉", 0, 0);
+  pop();
+
+  push();
+  translate(1200, 430);
+  rotate(radians(-15));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎊", 0, 0);
+  pop();
+
+  push();
+  translate(560, 800);
+  rotate(radians(0));
+  noStroke();
+  textFont("sans-serif");
+  textSize(100);
+  textAlign(CENTER, CENTER);
+  text("💌", 0, 0);
+  pop();
+
+  push();
+  translate(1100, 930);
+  rotate(radians(290));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎉", 0, 0);
+  pop();
+
+  // ✅ puppy4.png (puppyImgs[3])
+  let img = puppyImgs[3];
+  if (img) {
+    image(img, 160, 480, 500, (img.height / img.width) * 500);
+  }
+
+  pop();
+}
 
 // ================== UI ==================
 function animalDrawUI() {
@@ -1223,16 +1282,30 @@ function animalDrawUI() {
     );
   } else {
     let desc = "";
-    if (animalCurrentStep === 1)
+    if (animalCurrentStep === 1) {
       desc = "1단계) 안아주기: 양팔을 기준선 아래로 크게 3초 간 벌리세요!";
-    else if (animalCurrentStep === 2)
+      barCenterY = barCenterY -17;
+      desc2 = "Tip. 인식이 잘 되지 않는다면 뒤로 한 걸음 이동해 보세요."
+    }
+    else if (animalCurrentStep === 2) {
       desc = "2단계) 밥 주기: 오른손으로 당근과 그릇을 차례로 2초 간 터치하세요!";
-    else if (animalCurrentStep === 3)
-      desc = `3단계) 쓰다듬기: 오른손을 기준선을 중심으로 쓰다듬듯이 위아래로 3회 움직이세요! (${animalWaveCount}/${ANIMAL_REQUIRED_WAVES})`;
-    else if (animalCurrentStep === 4)
+      barCenterY = barCenterY -17;
+      desc2 = "Tip. '손목'을 카메라에 보여주며 동작을 수행해 보세요."
+    }
+    else if (animalCurrentStep === 3) {
+      desc = `3단계) 쓰다듬기: 오른손을 기준선을 중심으로 위아래로 3회 움직이세요! (${animalWaveCount}/${ANIMAL_REQUIRED_WAVES})`;
+      desc2 = ""
+    }
+    else if (animalCurrentStep === 4) {
       desc = `4단계) 놀아주기: 양팔을 기준선을 중심으로 위아래로 3회 움직이세요! (${animalSwingCount}/3)`;
-    textSize(35)
+      desc2 = ""
+    }
+    textSize(38);
     text(desc, width / 2, barCenterY);
+    
+    textSize(27);
+    text(desc2, width / 2, 105);
+
   }
   pop();
 
