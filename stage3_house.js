@@ -53,6 +53,20 @@ let HOUSE_SKIP_DELAY_MS = 7000; // 7초 후 SKIP 활성화
 
 let houseImgs = [];
 
+// ====== 진행도 BAR 이미지 (House) ======
+let houseBarImgs = { 1:null, 2:null, 3:null, 4:null };
+let houseBarReady = { 1:false, 2:false, 3:false, 4:false };
+let houseBarLoaded = false;
+
+// ====== House 시작 로딩(인트로) ======
+let houseIntroActive = true;
+let houseIntroStart = 0;
+let houseIntroPoseSeen = false;
+let houseIntroPoseSeenAt = 0;
+let HOUSE_INTRO_MIN_MS = 1000;          // 최소 1초 보여주기
+let HOUSE_INTRO_AFTER_POSE_MS = 400;    // 포즈 잡힌 후 0.4초 더 보여주고 닫기
+
+
 
 // ====== 단계 가이드 (House) ======
 let houseGuideImgs = {};              // step별 가이드 이미지 배열
@@ -76,23 +90,58 @@ let houseRetakeBtn = { x:0, y:0, w:0, h:0 };
 let houseSaveQRBtn = { x:0, y:0, w:0, h:0 };
 
 let houseFrameNoUI = null;
+let houseDoneTime = null;   // ✅ initHouseGame에서 쓰고 있으니 선언해두기(특히 strict 모드에서 에러 방지)
+
 
 // ====== 촬영 카운트다운 ======
 let houseCountdownActive = false;
 let houseCountdownStart = 0;
 let HOUSE_COUNTDOWN_MS = 3000;
 
+function loadHouseBarImgs() {
+  const paths = {
+    1: "bar/bar25.png",
+    2: "bar/bar50.png",
+    3: "bar/bar75.png",
+    4: "bar/bar100.png"
+  };
+
+  houseBarImgs = { 1:null, 2:null, 3:null, 4:null };
+  houseBarReady = { 1:false, 2:false, 3:false, 4:false };
+  houseBarLoaded = false;
+
+  let loaded = 0;
+  let total = 4;
+
+  Object.keys(paths).forEach((k) => {
+    let step = Number(k);
+    loadImage(paths[step], (img) => {
+      houseBarImgs[step] = img;
+      houseBarReady[step] = true;
+      loaded++;
+
+      if (loaded === total) {
+        houseBarLoaded = true;
+        console.log("✅ House bar images loaded!");
+      }
+    });
+  });
+}
+
 
 // ================= 초기화 (phase=3 && selectedGame==="house" 진입 시 호출) =================
 function initHouseGame() {
-  // ★ 카메라: stage2_avatar.js에서 쓰는 전역 video 재사용
+  // ✅ (선택) 이전 detect가 살아있으면 꺼보기: 있으면 꺼지고, 없으면 조용히 무시
+  try { houseBodyPose?.detectStop?.(); } catch (e) {}
+  try { houseBodyPose?.detectStop?.(video); } catch (e) {}
+
   if (!video) {
     video = createCapture(VIDEO);
     video.size(640, 480);
     video.hide();
   }
 
-  // 상태 초기화
+  // ===== 공통 상태 리셋 =====
   houseStep = 1;
   houseStepDone = false;
 
@@ -132,66 +181,101 @@ function initHouseGame() {
   houseFrameNoUI = null;
   houseCountdownActive = false;
   houseCountdownStart = 0;
- 
-  // ★ BodyPose 로드 & 시작 (공용 video 사용)
-  houseBodyPose = ml5.bodyPose("MoveNet", { flipped: true }, () => {
-    console.log("House BodyPose ready");
-    houseBodyPose.detectStart(video, gotHousePoses);   // ★ houseVideo → video
-  });
 
-  houseImgs[1] = loadImage("house1.png")
-  houseImgs[2] = loadImage("house2.png")
-  houseImgs[3] = loadImage("house3.png")
-  houseImgs[4] = loadImage("house4.png")
+  // ✅ 가이드/인트로 상태도 “매번” 초기화 (이게 재진입 버그 많이 잡음)
+  houseGuideLoaded = false;
+  showHouseGuide = false;
+  houseGuideIndex = 0;
+  houseGuideLastChange = 0;
+  houseGuideImagesReady = {};   // ✅ 이전 Promise 상태 찌꺼기 제거용
+
+  houseIntroActive = true;
+  houseIntroStart = millis();
+  houseIntroPoseSeen = false;
+  houseIntroPoseSeenAt = 0;
 
   houseStepStartTime = millis();
-// ====== 단계별 가이드 이미지 ======
-houseGuideImgs[1] = [
-  loadImage("Ax1(f).png"),
-  loadImage("Ax1(f).png"),
-  loadImage("Ax2.png")
-];
 
-houseGuideImgs[2] = [
-  loadImage("clear1(f).png"),
-  loadImage("clear1(f).png"),
-  loadImage("Saw1(ff).png"),
-  loadImage("Saw2(ff).png")
-];
+  // ✅ 진행도 BAR 이미지 로드(처음 1회)
+  if (!houseBarLoaded) {
+    loadHouseBarImgs();
+  }
 
-houseGuideImgs[3] = [
-  loadImage("clear2(f).png"),
-  loadImage("clear2(f).png"),
-  loadImage("Hammer1(ff).png"),
-  loadImage("Hammer2(ff).png")
-];
-
-houseGuideImgs[4] = [
-  loadImage("clear3(f).png"),
-  loadImage("clear3(f).png"),
-  loadImage("Welcome1(f).png"),
-  loadImage("Welcome2(f).png")
-];
-
-
-// 로딩 체크
-for (let step in houseGuideImgs) {
-  houseGuideImagesReady[step] = false;
-  Promise.all(
-    houseGuideImgs[step].map(
-      img =>
-        new Promise(res => {
-          if (img.width > 0) res();
-          else img.onload = res;
-        })
-    )
-  ).then(() => {
-    houseGuideImagesReady[step] = true;
-    checkHouseGuideAllLoaded();
+  // ✅ BodyPose 시작
+  houseBodyPose = ml5.bodyPose("MoveNet", { flipped: true }, () => {
+    console.log("House BodyPose ready");
+    houseBodyPose.detectStart(video, gotHousePoses);
   });
+
+  // ====== step 이미지 ======
+  houseImgs[1] = loadImage("house1.png");
+  houseImgs[2] = loadImage("house2.png");
+  houseImgs[3] = loadImage("house3.png");
+  houseImgs[4] = loadImage("house4.png");
+
+  // ====== 단계별 가이드 이미지 ======
+  houseGuideImgs[1] = [
+    loadImage("Ax1(f).png"),
+    loadImage("Ax1(f).png"),
+    loadImage("Ax2.png")
+  ];
+
+  houseGuideImgs[2] = [
+    loadImage("clear1(f).png"),
+    loadImage("clear1(f).png"),
+    loadImage("Saw1(ff).png"),
+    loadImage("Saw2(ff).png")
+  ];
+
+  houseGuideImgs[3] = [
+    loadImage("clear2(f).png"),
+    loadImage("clear2(f).png"),
+    loadImage("Hammer1(ff).png"),
+    loadImage("Hammer2(ff).png")
+  ];
+
+  houseGuideImgs[4] = [
+    loadImage("clear3(f).png"),
+    loadImage("clear3(f).png"),
+    loadImage("Welcome1(f).png"),
+    loadImage("Welcome2(f).png")
+  ];
+
+  // 로딩 체크
+  for (let step in houseGuideImgs) {
+    houseGuideImagesReady[step] = false;
+
+    Promise.all(
+      houseGuideImgs[step].map(img =>
+        new Promise(res => {
+          // p5.Image는 onload가 보장되지 않아서 width 체크 방식으로 폴백
+          if (img && img.width > 0) res();
+          else {
+            // 아주 짧게 폴링
+            let tries = 0;
+            let timer = setInterval(() => {
+              tries++;
+              if (img && img.width > 0) {
+                clearInterval(timer);
+                res();
+              }
+              if (tries > 50) { // 50*30ms=1.5s 정도
+                clearInterval(timer);
+                res();
+              }
+            }, 30);
+          }
+        })
+      )
+    ).then(() => {
+      houseGuideImagesReady[step] = true;
+      checkHouseGuideAllLoaded();
+    });
+  }
+
+  onEnterHouseStep(1);
 }
-onEnterHouseStep(1);
-}
+
 
 function checkHouseGuideAllLoaded() {
   houseGuideLoaded = Object.values(houseGuideImagesReady).every(v => v);
@@ -203,17 +287,24 @@ function checkHouseGuideAllLoaded() {
 
 
 
-// BodyPose 콜백
 function gotHousePoses(results) {
   housePoses = results || [];
   houseCurrentPose = housePoses[0] || null;
 
   if (houseCurrentPose) {
     updateHouseBodyHeights();
-    markActivity();    // 몸이 보이면 활동 기록
-  }
 
+    // ✅ markActivity가 없는 환경이면 여기서 런타임 에러 나니까 방어
+    if (typeof markActivity === "function") markActivity();
+
+    if (!houseIntroPoseSeen) {
+      houseIntroPoseSeen = true;
+      houseIntroPoseSeenAt = millis();
+    }
+  }
 }
+
+
 
 // 특정 관절 가져오기 + 스무딩
 function houseGetPart(name, minConf = HOUSE_BASE_MIN_CONF) {
@@ -257,16 +348,63 @@ function updateHouseBodyHeights() {
   }
 }
 
+function drawHouseIntroOverlay() {
+  let ui = min(width / 640, height / 480);
+  ui = constrain(ui, 1.0, 2.0);
+
+  push();
+  resetMatrix();
+
+  noStroke();
+  fill(0, 170);
+  rect(0, 0, width, height);
+
+  fill(255);
+  textAlign(CENTER, CENTER);
+
+  if (typeof fontStart !== "undefined" && fontStart) textFont(fontStart);
+  textStyle(BOLD);
+  textSize(70 * ui);
+  text("집 짓기 게임 시작", width / 2, height * 0.45);
+
+  if (typeof fontTemplate !== "undefined" && fontTemplate) textFont(fontTemplate);
+  textStyle(NORMAL);
+  textSize(26 * ui);
+
+  let tip1 = "Tip: 모자, 마스크 등을 벗고 해야 동작 인식이 더 잘 됩니다";
+  let tip2 = "Tip: 카메라에 스켈레톤(점)이 표시될 때까지 기다린 후 동작을 수행해요";
+
+  let baseY = height - 120 * ui;
+  text(tip1, width / 2, baseY);
+  text(tip2, width / 2, baseY + 38 * ui);
+
+  pop();
+}
+
+
 // -------------------- 메인 draw (phase===3 && selectedGame==="house"일 때 호출) --------------------
 function drawHouseGame() {
   background(0);
 
-  // ★ 캠 풀스크린 + 이모지 아바타 (stage2_avatar.js에 정의된 함수)
   push();
   drawFaceFullScreen();
   pop();
 
-  // ✅ 완료 + 프리뷰 전이면 "UI 없는 화면"을 먼저 저장
+  // ✅ 0) 시작 인트로(로딩창)
+  if (houseIntroActive) {
+    drawHouseIntroOverlay();
+
+    let t = millis();
+    let minOK = (t - houseIntroStart) >= HOUSE_INTRO_MIN_MS;
+    let poseOK = houseIntroPoseSeen && (t - houseIntroPoseSeenAt) >= HOUSE_INTRO_AFTER_POSE_MS;
+
+    if (minOK && poseOK) {
+      houseIntroActive = false;
+    }
+    return;
+  }
+
+  // ✅ 완료 + 프리뷰 전이면 "UI 없는 화면" 저장
   if (houseStepDone && houseCaptureMode === "NONE") {
     houseDrawCompleteShotUI();
     houseFrameNoUI = get(0, 0, width, height);
@@ -279,10 +417,9 @@ function drawHouseGame() {
     return;
   }
 
-  // 포즈 디버깅(원하면 유지)
   push();
   if (houseCurrentPose) drawHouseKeypoints();
-  
+
   if (!houseStepDone && houseCurrentPose) {
     if (houseStep === 1)      houseUpdateAxe();
     else if (houseStep === 2) houseUpdateSaw();
@@ -300,28 +437,25 @@ function drawHouseGame() {
   drawHouseStepImage();
   pop();
 
-push();
-resetMatrix();
-drawHouseGuide();
-pop();
+  // ✅ 진행도 BAR
+  drawHouseProgressBar();
 
+  // ✅ 가이드
+  push();
+  resetMatrix();
+  drawHouseGuide();
+  pop();
 
-  // ✅ 완료 상태면 셔터 버튼 + 카운트다운/플래시
   if (houseStepDone && houseCaptureMode === "NONE") {
     houseDrawPhotoButton();
   }
+
   houseDrawFlashEffect();
   houseDrawCountdownOverlay();
 }
 
-function onEnterHouseStep(step) {
-  if (!houseGuideLoaded) return;
-  if (!houseGuideImagesReady[step]) return;
 
-  showHouseGuide = true;
-  houseGuideIndex = 0;
-  houseGuideLastChange = millis();
-}
+
 
 function drawHouseGuide() {
   if (!showHouseGuide) return;
@@ -387,6 +521,31 @@ function drawHouseStepImage() {
 
 }
 
+function drawHouseProgressBar() {
+  // 완료면 100%, 아니면 현재 step
+  let step = houseStepDone ? 4 : houseStep;
+  step = constrain(step, 1, 4);
+
+  if (!houseBarLoaded) return;
+  let img = houseBarImgs[step];
+  if (!img) return;
+  if (img.width === 0 || img.height === 0) return; // 로드 덜 됐을 때 방어
+
+  let ui = min(width / 640, height / 480);
+  ui = constrain(ui, 1.0, 2.0);
+
+  let w = 520 * ui;
+  let h = (img.height / img.width) * w;
+
+  let x = width / 2;
+  let y = height - 55 * ui;
+
+  push();
+  resetMatrix();
+  imageMode(CENTER);
+  image(img, x, y, w, h);
+  pop();
+}
 
 
 // 1단계: 도끼질
@@ -722,13 +881,14 @@ function houseForceNextStep() {
 }
 
 function onEnterHouseStep(step) {
-    if (!houseGuideLoaded) return;
-    if (!houseGuideImagesReady[step]) return;
+  if (!houseGuideLoaded) return;
+  if (!houseGuideImagesReady[step]) return;
 
-    showHouseGuide = true;   // 가이드 표시 활성화
-    houseGuideIndex = 0;     // 인덱스 초기화
-    houseLastGuideSwitch = millis(); // 이미지 전환 타이머 초기화
+  showHouseGuide = true;
+  houseGuideIndex = 0;
+  houseGuideLastChange = millis(); // ✅ drawHouseGuide에서 쓰는 변수와 통일
 }
+
 
 
 function housePointInRect(px, py, r) {

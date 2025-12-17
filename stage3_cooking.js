@@ -5,6 +5,20 @@ let cookCurrentPose = null;
 
 let cookImgs = [];
 
+// ====== Cooking 진행도 BAR 이미지 ======
+let cookBarImgs = { 1:null, 2:null, 3:null, 4:null };
+let cookBarReady = { 1:false, 2:false, 3:false, 4:false };
+let cookBarLoaded = false;
+
+// ====== Cooking 시작 로딩(인트로) ======
+let cookIntroActive = true;
+let cookIntroStart = 0;
+let cookIntroPoseSeen = false;
+let cookIntroPoseSeenAt = 0;
+let COOK_INTRO_MIN_MS = 1000;       // 최소 1초는 보여주기
+let COOK_INTRO_AFTER_POSE_MS = 400; // 포즈 잡힌 후 조금만 더 보여주고 닫기
+
+
 // ===== 요리 가이드 이미지 =====
 let cookGuideImgs = {
   0: [], // 1단계: 썰기
@@ -148,30 +162,55 @@ function loadCookGuideImgs() {
   });
 }
 
+function loadCookBarImgs() {
+  const paths = {
+    1: "bar/bar25.png",
+    2: "bar/bar50.png",
+    3: "bar/bar75.png",
+    4: "bar/bar100.png"
+  };
+
+  cookBarImgs = { 1:null, 2:null, 3:null, 4:null };
+  cookBarReady = { 1:false, 2:false, 3:false, 4:false };
+  cookBarLoaded = false;
+
+  let loaded = 0;
+  let total = 4;
+
+  Object.keys(paths).forEach((k) => {
+    let step = Number(k);
+    loadImage(paths[step], (img) => {
+      cookBarImgs[step] = img;
+      cookBarReady[step] = true;
+      loaded++;
+
+      if (loaded === total) {
+        cookBarLoaded = true;
+        console.log("✅ Cook bar images loaded!");
+      }
+    });
+  });
+}
+
 
 function initCookingGame() {
-  // ★ 카메라: stage2_avatar.js 에서 쓰는 전역 video 재사용
   if (!video) {
     video = createCapture(VIDEO);
     video.size(width, height);
     video.hide();
   }
 
-  // ★ BodyPose (MoveNet) - 공용 video 사용
   cookBodyPose = ml5.bodyPose("MoveNet", { flipped: true }, () => {
     console.log("cook bodyPose ready");
-    cookBodyPose.detectStart(video, cookGotPoses);   // ★ cookVideo → video
+    cookBodyPose.detectStart(video, cookGotPoses);
   });
 
-  // Face tracking (clmtrackr) - 공용 video 사용
   cookTracker = new clm.tracker();
   cookTracker.init();
-  cookTracker.start(video.elt);                      // ★ cookVideo.elt → video.elt
+  cookTracker.start(video.elt);
 
-  // 상태 리셋
   cookResetState();
 
-  // 이미지 미리 로드
   cookImgs[0] = loadImage("cook1.png");
   cookImgs[1] = loadImage("cook2.png");
   cookImgs[2] = loadImage("cook3.png");
@@ -180,17 +219,29 @@ function initCookingGame() {
   cookStepStartTime = millis();
   loadCookGuideImgs();
 
-showCookGuide = false;
-cookGuideIndex = 0;
-cookGuideLastChange = 0;
-onEnterCookStage(0);
+  // ✅ 진행도 BAR 이미지 로드(처음 1회)
+  if (!cookBarLoaded) {
+    loadCookBarImgs();
+  }
+
+  // ✅ 인트로(로딩창) 상태 초기화
+  cookIntroActive = true;
+  cookIntroStart = millis();
+  cookIntroPoseSeen = false;
+  cookIntroPoseSeenAt = 0;
+
+  // 기존 가이드 초기화 로직 유지
+  showCookGuide = false;
+  cookGuideIndex = 0;
+  cookGuideLastChange = 0;
+  onEnterCookStage(0);
 
   prevCookStage = -1;
   showCookGuide = false;
   cookGuideIndex = 0;
   cookGuideLastChange = 0;
-
 }
+
 
 function onEnterCookStage(stage) {
   if (!cookGuideLoaded) return;
@@ -260,7 +311,13 @@ function cookGotPoses(results) {
 
   if (cookCurrentPose) {
     cookUpdateBodyHeights();
-    markActivity();    // 🔹 몸이 잡힌 순간 활동 기록
+    markActivity();
+
+    // ✅ 처음으로 포즈가 잡힌 순간 기록(인트로 종료 조건용)
+    if (!cookIntroPoseSeen) {
+      cookIntroPoseSeen = true;
+      cookIntroPoseSeenAt = millis();
+    }
   }
 }
 
@@ -313,62 +370,129 @@ function cookUpdateBodyHeights() {
   }
 }
 
+function drawCookProgressBar() {
+  // 0~3단계(= 1~4칸)에서만 표시
+  if (cookStage < 0 || cookStage > 3) return;
+  if (!cookBarLoaded) return;
+
+  // cookStage(0~3) → barStep(1~4)
+  let barStep = cookStage + 1;
+  if (!cookBarReady[barStep]) return;
+
+  let img = cookBarImgs[barStep];
+  if (!img || img.width <= 0) return;
+
+  push();
+  resetMatrix();
+  imageMode(CENTER);
+
+  let barW = min(900, width * 0.65);
+  let barH = (img.height / img.width) * barW;
+
+  // ✅ 네가 맞춘 값 그대로
+  let bottomMargin = -285;
+
+  let cx = width / 2;
+  let cy = height - bottomMargin - barH / 2;
+
+  image(img, cx, cy, barW, barH);
+  pop();
+}
+
+function drawCookIntroOverlay() {
+  let ui = min(width / 640, height / 480);
+  ui = constrain(ui, 1.0, 2.0);
+
+  push();
+  resetMatrix();
+
+  noStroke();
+  fill(0, 170);
+  rect(0, 0, width, height);
+
+  fill(255);
+  textAlign(CENTER, CENTER);
+
+  if (typeof fontStart !== "undefined" && fontStart) textFont(fontStart);
+  textStyle(BOLD);
+  textSize(70 * ui);
+  text("요리하기 게임 시작", width / 2, height * 0.45);
+
+  if (typeof fontTemplate !== "undefined" && fontTemplate) textFont(fontTemplate);
+  textStyle(NORMAL);
+  textSize(26 * ui);
+
+  let tip1 = "Tip: 모자, 마스크 등을 벗고 해야 동작 인식이 더 잘 됩니다";
+  let tip2 = "Tip: 카메라에 스켈레톤(점)이 표시될 때까지 기다린 후 동작을 수행해요";
+
+  let baseY = height - 120 * ui;
+  text(tip1, width / 2, baseY);
+  text(tip2, width / 2, baseY + 38 * ui);
+
+  pop();
+}
+
+
 function drawCookingGame() {
   background(0);
   drawFaceFullScreen();
 
-   // ===== cookStage 변경 감지 (가이드 전용) =====
+  // ✅ 0) 시작 인트로(로딩창)
+  if (cookIntroActive) {
+    drawCookIntroOverlay();
+
+    let t = millis();
+    let minOK = (t - cookIntroStart) >= COOK_INTRO_MIN_MS;
+    let poseOK = cookIntroPoseSeen && (t - cookIntroPoseSeenAt) >= COOK_INTRO_AFTER_POSE_MS;
+
+    if (minOK && poseOK) {
+      cookIntroActive = false;
+    }
+    return;
+  }
+
+  // ===== cookStage 변경 감지 (가이드 전용) =====
   if (cookStage !== prevCookStage) {
     prevCookStage = cookStage;
 
-    // 가이드 상태 리셋
     showCookGuide = false;
     cookGuideIndex = 0;
     cookGuideLastChange = 0;
 
-    // 가이드 시작 (완료 stage 제외)
     if (cookStage >= 0 && cookStage <= 3) {
       onEnterCookStage(cookStage);
     }
   }
 
-  // ✅ 완료 상태 + 프리뷰 전이면 "UI 없는 화면"을 먼저 저장해둠 (중요!)
+  // ✅ 완료 상태 + 프리뷰 전이면 "UI 없는 화면" 저장
   if (cookStage === 4 && cookStageDone && cookCaptureMode === "NONE") {
-    cookDrawCompleteShotUI();                // ✅ 장식 UI 먼저 그리기 (사진에 포함)
-    cookFrameNoUI = get(0, 0, width, height); // ✅ 그 상태로 저장 (상단바/셔터는 아직 안 그림)
+    cookDrawCompleteShotUI();
+    cookFrameNoUI = get(0, 0, width, height);
   }
 
-
-  // ✅ 프리뷰 화면이면 프리뷰만 그리고 return
+  // ✅ 프리뷰 화면이면 프리뷰만
   if (cookStage === 4 && cookStageDone && cookCaptureMode === "PREVIEW") {
     cookDrawPhotoPreview();
     cookDrawFlashEffect();
     return;
   }
-  // 안내 텍스트
+
   cookDrawStageInfo();
 
   if (cookStage === 0 || cookStage === 1) {
-  cookDrawChestGuideLine();
-}
+    cookDrawChestGuideLine();
+  }
 
-  // 4단계: Face tracking (입 벌리기)만 별도로 처리
   if (cookStage === 3) {
     cookUpdateTaste();
   }
-  
-  // 1~3단계: BodyPose
+
   if (!cookStageDone && cookCurrentPose) {
-    if (cookStage === 0) {
-      cookUpdateChop();
-    } else if (cookStage === 1) {
-      cookUpdatePour();
-    } else if (cookStage === 2) {
-      cookUpdateFry();
-    }
+    if (cookStage === 0) cookUpdateChop();
+    else if (cookStage === 1) cookUpdatePour();
+    else if (cookStage === 2) cookUpdateFry();
   }
 
-  // 디버깅용 키포인트 표시
   if (cookCurrentPose && cookStage !== 3 && cookStage !== 4) {
     cookDrawKeypoints();
   }
@@ -376,46 +500,47 @@ function drawCookingGame() {
   let stageIndex = cookStage;
   if (cookStage === 3) stageIndex = 3;
   if (cookStage === 4) stageIndex = 3;
-  
+
   let img = cookImgs[stageIndex];
 
-  // 🔥 단계별 그림 표시 (캔버스 우측 하단)
   if (cookStage >= 0) {
-    // let img = cookImgs[cookStage];
     if (img) {
-      // 단계별 이미지 크기 조정
       let w = 600;
       let h = (img.height / img.width) * w;
       let x, y;
 
-      if(cookStage === 0){
+      if (cookStage === 0) {
         x = width / 2 - w / 2;
-        y = height - h +50;
-      } else if (cookStage === 1){
+        y = height - h + 50;
+      } else if (cookStage === 1) {
         x = width / 2 - w / 2;
-        y = height - h +20;
-      } else if (cookStage === 2){
+        y = height - h + 20;
+      } else if (cookStage === 2) {
         x = width - w - 20;
         y = height - h;
-      } else if (cookStage === 3){
+      } else if (cookStage === 3) {
         x = width / 2 - w / 2;
-        y = height - h +20;
+        y = height - h + 20;
       }
 
-      image(img, x,y,w,h);
-      
+      image(img, x, y, w, h);
     }
 
-  // ✅ 완료 상태면 셔터 버튼 그리기
-  if (cookStage === 4 && cookStageDone && cookCaptureMode === "NONE") {
-    cookDrawPhotoButton();
+    // ✅ 1~4단계 진행도 BAR (동물 스케치와 동일 위치 로직)
+    drawCookProgressBar();
+
+    // ✅ 완료 상태면 셔터 버튼
+    if (cookStage === 4 && cookStageDone && cookCaptureMode === "NONE") {
+      cookDrawPhotoButton();
     }
   }
+
   cookDrawFlashEffect();
   cookDrawCountdownOverlay();
 
   drawCookGuide();
 }
+
 
 function drawCookGuide() {
   if (!showCookGuide) return;
