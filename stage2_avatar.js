@@ -1524,7 +1524,7 @@ function drawHumanEmojiPage() {
   push();
   fill(0);
   noStroke();
-  textFont(fontTemplate);
+  textFont(fontStart);
   textStyle(BOLD);
   textAlign(CENTER, CENTER);
   textSize(40);

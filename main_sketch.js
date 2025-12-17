@@ -490,7 +490,7 @@ function drawTemplatePage() {
   let margin = 40;
 
   push();
-  textFont(fontTemplate);
+  textFont(fontStart);
   textAlign(CENTER, CENTER);
   fill(0);
   noStroke();

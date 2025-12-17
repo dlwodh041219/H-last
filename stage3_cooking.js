@@ -390,7 +390,7 @@ function drawCookProgressBar() {
   let barH = (img.height / img.width) * barW;
 
   // ✅ 네가 맞춘 값 그대로
-  let bottomMargin = -285;
+  let bottomMargin = 550;
 
   let cx = width / 2;
   let cy = height - bottomMargin - barH / 2;

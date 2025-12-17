@@ -522,30 +522,39 @@ function drawHouseStepImage() {
 }
 
 function drawHouseProgressBar() {
-  // 완료면 100%, 아니면 현재 step
-  let step = houseStepDone ? 4 : houseStep;
-  step = constrain(step, 1, 4);
+  // 1~4단계에서만 표시
+  let barStep = houseStepDone ? 4 : houseStep;
+  if (barStep < 1 || barStep > 4) return;
 
+  // 로딩 체크
   if (!houseBarLoaded) return;
-  let img = houseBarImgs[step];
-  if (!img) return;
-  if (img.width === 0 || img.height === 0) return; // 로드 덜 됐을 때 방어
+  if (!houseBarReady[barStep]) return;
 
+  let img = houseBarImgs[barStep];
+  if (!img || img.width <= 0) return;
+
+  // (기존 house 버전처럼) 화면 크기 따라 약간 스케일
   let ui = min(width / 640, height / 480);
   ui = constrain(ui, 1.0, 2.0);
-
-  let w = 520 * ui;
-  let h = (img.height / img.width) * w;
-
-  let x = width / 2;
-  let y = height - 55 * ui;
 
   push();
   resetMatrix();
   imageMode(CENTER);
-  image(img, x, y, w, h);
+
+  // cook 스타일: 너비는 화면 비율 기반 + 상한
+  let barW = min(900, width * 0.65);
+  let barH = (img.height / img.width) * barW;
+
+  // ✅ 기존 house 위치 느낌 유지(바닥에서 조금 띄움)
+  let bottomMargin = 550;
+
+  let cx = width / 2;
+  let cy = height - bottomMargin - barH / 2;
+
+  image(img, cx, cy, barW, barH);
   pop();
 }
+
 
 
 // 1단계: 도끼질
