@@ -342,6 +342,8 @@ function drawAnimalGame() {
 
   // ✅ (중요) UI 그리기 전에, "UI 없는 화면"을 저장해둠
   if (animalCurrentStep > 4 && animalCaptureMode === "NONE") {
+    animalDrawCompleteShotUI();
+
     animalFrameNoUI = get(0, 0, width, height);
   }
 
@@ -1175,6 +1177,61 @@ function animalSkipRemainingSec() {
   return max(0, remain);
 }
 
+function animalDrawCompleteShotUI() {
+  if (animalCurrentStep !== 5) return;
+
+  push();
+  resetMatrix(); // ✅ 캡쳐에 안정적으로 찍히게 좌표계 초기화
+
+  // 🎉🎊💌 장식들
+  push();
+  translate(200, 330);
+  rotate(radians(10));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎉", 0, 0);
+  pop();
+
+  push();
+  translate(1200, 430);
+  rotate(radians(-15));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎊", 0, 0);
+  pop();
+
+  push();
+  translate(600, 800);
+  rotate(radians(0));
+  noStroke();
+  textFont("sans-serif");
+  textSize(100);
+  textAlign(CENTER, CENTER);
+  text("💌", 0, 0);
+  pop();
+
+  push();
+  translate(1100, 930);
+  rotate(radians(290));
+  noStroke();
+  textFont("sans-serif");
+  textSize(130);
+  textAlign(CENTER, CENTER);
+  text("🎉", 0, 0);
+  pop();
+
+  // ✅ puppy4.png (puppyImgs[3])
+  let img = puppyImgs[3];
+  if (img) {
+    image(img, 200, 480, 500, (img.height / img.width) * 500);
+  }
+
+  pop();
+}
 
 // ================== UI ==================
 function animalDrawUI() {
