@@ -633,23 +633,7 @@ function drawTemplateCard(
   pop();
 }
 
-// 3단계: 각 게임 이름만 표시하는 임시 UI
-function drawGamePage() {
-  background(240);
-  textAlign(CENTER, CENTER);
-  textFont(fontTemplate);
-  fill(0);
-  noStroke();
-  textSize(28);
 
-  let label = "";
-  if (selectedGame === "animal") label = "동물 키우기 게임 시작!";
-  else if (selectedGame === "cooking") label = "요리하기 게임 시작!";
-  else if (selectedGame === "house") label = "집 짓기 게임 시작!";
-  else label = "게임이 선택되지 않았습니다.";
-
-  text(label, width / 2, height / 2);
-}
 
 function mousePressed() {
   markActivity();
