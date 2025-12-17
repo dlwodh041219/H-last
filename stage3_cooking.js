@@ -1136,6 +1136,7 @@ function cookDrawPhotoPreview() {
 
   fill(20);
   textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
   textStyle(BOLD);
   textSize(20 * ui);
   text("사진을 확인하고 저장하거나 다시 찍을 수 있어요", width / 2, topH / 2);
@@ -1222,6 +1223,7 @@ function cookDrawPhotoPreview() {
   resetMatrix();
   rectMode(CORNER);
   textAlign(CENTER, CENTER);
+  textFont(fontTemplate);
   textStyle(BOLD);
   textSize(18 * ui);
 
