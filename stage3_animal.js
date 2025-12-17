@@ -162,7 +162,7 @@ function initAnimalGame() {
   animalChestY = null;
 
   animalFood = { x: 1000, y: 300, r: 50, visible: false }; // 1단계 끝나고 보이게
-  animalBowl = { x: 700, y: 950, r: 60, visible: false };
+  animalBowl = { x: 500, y: 800, r: 60, visible: false };
 
   animalWaveState = "DOWN";
   animalWaveCount = 0;
@@ -541,7 +541,7 @@ function animalDetectOpenArms() {
 // ================== 2단계: 밥 주기 ==================
 function animalDrawObjects() {
   push();
-  textSize(150);
+  textSize(200);
   textFont("sans-serif");
   if (animalFood.visible) text("🥕", animalFood.x, animalFood.y);
   if (animalBowl.visible) text("🥣", animalBowl.x, animalBowl.y);
