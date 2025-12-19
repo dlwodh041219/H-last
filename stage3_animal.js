@@ -664,6 +664,8 @@ function animalDetectOpenArms() {
     rect(0, height - 80, width, 80);
     fill(255);
     textSize(36);
+    textFont(fontTemplate);
+    textAlign(CENTER,CENTER)
     text(
       "유지 시간: " + (elapsed / 1000).toFixed(1) + "초 / 3초",
       width / 2,
