@@ -878,6 +878,7 @@ function houseForceNextStep() {
   } else if (houseStep === 4) {
     houseWaveCycles = 3;
     houseStepDone = true;
+    return;
   }
 
   // ✅ 다음 단계(혹은 완료 화면) 진입 시간 갱신 → 7초 카운트 다시 시작
@@ -890,6 +891,7 @@ function houseForceNextStep() {
 }
 
 function onEnterHouseStep(step) {
+  if (houseStepDone) return;
   if (!houseGuideLoaded) return;
   if (!houseGuideImagesReady[step]) return;
 
