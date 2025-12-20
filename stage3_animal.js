@@ -748,7 +748,7 @@ function animalUpdateFeedStepByBodyPose() {
     fill(255);
     textAlign(CENTER, CENTER);
     textSize(36);
-    text(`${label} 터치 유지: ${(elapsed/1000).toFixed(1)}초 / 2.0초`, width/2, height - 35);
+    text(`${label} 터치 유지: ${(elapsed/1000).toFixed(1)}초 / 2.0초`, width/2, height - 40);
     pop();
 
     if (elapsed >= ANIMAL_FEED_HOLD_MS) {
