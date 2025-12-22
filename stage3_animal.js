@@ -435,19 +435,29 @@ function drawAnimalGame() {
     return;
   }
 
+  let canDetect = !showAnimalGuide;
+
   if (animalCurrentStep === 1) {
     animalDrawKeypoints();
+    if (canDetect) {
     animalStepDone = animalDetectOpenArms();
+    }
   } else if (animalCurrentStep === 2) {
     animalDrawObjects();
+    if (canDetect) {
     animalUpdateFeedStepByBodyPose();
     if (animalFeedState === "DONE") animalStepDone = true;
+    }
   } else if (animalCurrentStep === 3) {
     animalDrawKeypoints();
+    if (canDetect){
     animalDetectWave();
+    }
   } else if (animalCurrentStep === 4) {
     animalDrawKeypoints();
+    if(canDetect){
     animalPlayWithAnimal();
+    }
   }
 
   // ✅ 완료 직전 "UI 없는 화면" 저장

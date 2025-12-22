@@ -449,7 +449,8 @@ function drawCookingGame() {
       cookIntroActive = false;
     }
     return;
-  }
+  } 
+
 
   // ===== cookStage 변경 감지 (가이드 전용) =====
   if (cookStage !== prevCookStage) {
@@ -483,11 +484,13 @@ function drawCookingGame() {
     cookDrawChestGuideLine();
   }
 
-  if (cookStage === 3) {
+  let canDetectCookAction = !showCookGuide
+  if (cookStage === 3 && canDetectCookAction) {
     cookUpdateTaste();
   }
 
-  if (!cookStageDone && cookCurrentPose) {
+  
+  if (!cookStageDone && cookCurrentPose && canDetectCookAction) {
     if (cookStage === 0) cookUpdateChop();
     else if (cookStage === 1) cookUpdatePour();
     else if (cookStage === 2) cookUpdateFry();
@@ -930,6 +933,10 @@ function cookForceNextStage() {
     cookTasteCycles = COOK_TASTE_TARGET;
     cookStage = 4;
     cookStageDone = true;
+
+    cookStage4ClearActive = true;
+    cookStage4ClearStart = millis();
+    
     cookDetectedText =
       "🎉요리 완료! 사랑하는 사람들과 음식을 나눠 보세요!🎉";
   }

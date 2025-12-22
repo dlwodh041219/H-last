@@ -420,7 +420,8 @@ function drawHouseGame() {
   push();
   if (houseCurrentPose) drawHouseKeypoints();
 
-  if (!houseStepDone && houseCurrentPose) {
+  let canDetectHouseAction = !showHouseGuide;
+  if (!houseStepDone && houseCurrentPose && !showHouseGuide) {
     if (houseStep === 1)      houseUpdateAxe();
     else if (houseStep === 2) houseUpdateSaw();
     else if (houseStep === 3) houseUpdateHammer();
